@@ -1,1 +1,3 @@
-module.exports = { output: 'export', basePath: '/merobusiness', };
+module.exports = {
+  allowedDevOrigins: ['192.168.1.77'],
+};

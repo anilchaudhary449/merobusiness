@@ -5,9 +5,10 @@ import { notFound } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function generateMetadata({ params }: { params: { siteId: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ siteId: string }> }) {
+  const { siteId } = await params;
   await dbConnect();
-  const site = await Website.findOne({ slug: params.siteId });
+  const site = await Website.findOne({ slug: siteId });
   
   if (!site) return { title: 'Site not found' };
   if (site.isActive === false) return { title: `${site.businessName} — Temporarily Unavailable` };
@@ -27,13 +28,17 @@ export async function generateMetadata({ params }: { params: { siteId: string } 
   };
 }
 
-export default async function PublicWebsite({ params }: { params: { siteId: string } }) {
+export default async function PublicWebsite({ params }: { params: Promise<{ siteId: string }> }) {
+  const { siteId } = await params;
   await dbConnect();
-  const site = await Website.findOne({ slug: params.siteId }).lean() as any;
+  const siteRaw = await Website.findOne({ slug: siteId }).lean() as any;
   
-  if (!site) {
+  if (!siteRaw) {
     notFound();
   }
+
+  // Convert to plain object to avoid serialization errors with ObjectId and Dates
+  const site = JSON.parse(JSON.stringify(siteRaw));
 
   // Show a premium "unavailable" page if the store is inactive
   if (site.isActive === false) {

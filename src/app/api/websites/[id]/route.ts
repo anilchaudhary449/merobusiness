@@ -3,10 +3,11 @@ import { dbConnect } from '@/lib/mongoose';
 import Website from '@/models/Website';
 
 // Get a single website by ID
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     await dbConnect();
-    const website = await Website.findById(params.id);
+    const website = await Website.findById(id);
     if (!website) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(website);
   } catch (error) {
@@ -15,11 +16,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 }
 
 // Update a website
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const data = await req.json();
     console.log('--- UPDATING WEBSITE DATA ---');
-    console.log('ID:', params.id);
+    console.log('ID:', id);
     console.log('New Fields Check:', {
       heroHeadingColor: data.heroHeadingColor,
       footerBgColor: data.footerBgColor,
@@ -28,7 +30,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     console.log('----------------------------');
     await dbConnect();
     
-    const website = await Website.findByIdAndUpdate(params.id, data, { new: true });
+    const website = await Website.findByIdAndUpdate(id, data, { new: true });
     return NextResponse.json(website);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -36,10 +38,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 // Delete a website
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     await dbConnect();
-    const website = await Website.findByIdAndDelete(params.id);
+    const website = await Website.findByIdAndDelete(id);
     if (!website) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ message: 'Deleted successfully' });
   } catch (error) {
@@ -48,10 +51,11 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 }
 
 // Toggle active status
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     await dbConnect();
-    const website = await Website.findById(params.id);
+    const website = await Website.findById(id);
     if (!website) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     website.isActive = !website.isActive;
     await website.save();
