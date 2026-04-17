@@ -18,7 +18,7 @@ export async function dbConnect() {
     };
 
     cached.promise = (async () => {
-      let uri = process.env.MONGODB_URI || "mongodb://localhost:27017/nepal_site_builder";
+      let uri = process.env.MONGODB_URI || "mongodb://localhost:27017/merobusiness";
       
       // Automatic fallback to an in-memory database for local testing
       if (uri.includes("localhost") || uri.includes("127.0.0.1") || uri.includes("::1")) {

@@ -1,0 +1,81 @@
+[
+  {
+    "_id": "b563d00f-8f7e-4fa2-92c1-4c5b72ca1f5b",
+    "userId": "user_123",
+    "slug": "dr-collections",
+    "isActive": true,
+    "businessName": "DR Collections",
+    "theme": "boutique",
+    "whatsappNumber": "9868289567",
+    "location": "Kathmandu, Nepal",
+    "mapConfig": {
+      "query": "Kathmandu, Nepal",
+      "zoom": 14
+    },
+    "logoUrl": "",
+    "faviconUrl": "",
+    "fontFamily": "Inter",
+    "primaryColor": "#f59e0b",
+    "backgroundColor": "#ffffff",
+    "heroBgColor": "#111827",
+    "aboutBgColor": "#ffffff",
+    "productsBgColor": "#f9fafb",
+    "headingColor": "#111827",
+    "textColor": "#4b5563",
+    "headingWeight": "800",
+    "heroHeadingColor": "#ffffff",
+    "heroTextColor": "#e5e7eb",
+    "heroHeadingWeight": "900",
+    "aboutHeadingColor": "#111827",
+    "aboutTextColor": "#4b5563",
+    "aboutHeadingWeight": "800",
+    "productsHeadingColor": "#111827",
+    "productsTextColor": "#4b5563",
+    "productsHeadingWeight": "800",
+    "navBgColor": "#ffffff",
+    "navTextColor": "#4b5563",
+    "footerBgColor": "#111827",
+    "footerHeadingColor": "#ffffff",
+    "footerTextColor": "#9ca3af",
+    "footerHeadingWeight": "700",
+    "navFontFamily": "",
+    "heroFontFamily": "",
+    "aboutFontFamily": "",
+    "productsFontFamily": "",
+    "footerFontFamily": "",
+    "navHeadingWeight": "700",
+    "businessEmail": "cpln.2346@gmail.com",
+    "directPhone": "9812345607",
+    "facebookUrl": "@drcollectionsandboutique",
+    "instagramUrl": "@drcollectionsandboutique",
+    "tiktokUrl": "@drcollectionsandboutique",
+    "twitterUrl": "@drcollectionsandboutique",
+    "animationStyle": "fade-in",
+    "navAnimationStyle": "reveal",
+    "heroAnimationStyle": "reveal",
+    "messengerUsername": "hamitharutharuniya",
+    "content": {
+      "hero": {
+        "title": "Welcome to DR Collections",
+        "subtitle": "Experience quality and excellence like never before.",
+        "imageUrl": "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=800&auto=format&fit=crop",
+        "ctaText": "Explore Our Collection"
+      },
+      "about": {
+        "description": "DR Collections is dedicated to providing the best service in Nepal. Our passion for quality drives everything we do.",
+        "imageUrl": "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=800&auto=format&fit=crop"
+      },
+      "products": [
+        {
+          "id": "1776412364231",
+          "name": "New Product",
+          "price": "Rs. 1000",
+          "imageUrl": "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&auto=format&fit=crop"
+        }
+      ]
+    },
+    "isPublished": false,
+    "createdAt": "2026-04-17T07:52:23.824Z",
+    "updatedAt": "2026-04-17T07:52:59.062Z"
+  }
+]

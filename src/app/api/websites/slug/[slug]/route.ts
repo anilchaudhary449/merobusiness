@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
-import { dbConnect } from '@/lib/mongoose';
-import Website from '@/models/Website';
+import { getWebsiteBySlug } from '@/lib/website-repository';
 
 // Get a single website by slug
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
-    await dbConnect();
-    const website = await Website.findOne({ slug });
+    const website = await getWebsiteBySlug(slug);
     if (!website) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (website.isActive === false) {
       return NextResponse.json({ error: 'This store is currently unavailable.' }, { status: 503 });

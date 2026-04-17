@@ -74,6 +74,7 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
   const fieldLabels: Record<string, string> = {
     'businessName': 'Business Name',
     'whatsappNumber': 'WhatsApp Number',
+    'messengerUsername': 'Messenger Username',
     'location': 'Store Location',
     'logoUrl': 'Logo',
     'faviconUrl': 'Favicon',
@@ -858,6 +859,19 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
                   }}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                   placeholder="98XXXXXXXX"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Messenger Username</label>
+                <input
+                  type="text"
+                  value={site.messengerUsername || ''}
+                  onChange={(e) => {
+                    setSite({ ...site, messengerUsername: e.target.value });
+                    markDirty('messengerUsername');
+                  }}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="username"
                 />
               </div>
               <div>

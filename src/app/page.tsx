@@ -5,7 +5,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <div className="text-center max-w-2xl">
         <h1 className="text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">
-          NepalSites Builder
+          MeroBusiness
         </h1>
         <p className="text-xl text-gray-600 mb-10 leading-relaxed">
           The simplest way to create a mobile-first, high-performance website for your local business in Nepal. No coding required.

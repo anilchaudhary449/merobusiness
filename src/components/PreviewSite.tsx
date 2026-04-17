@@ -25,11 +25,18 @@ const XIcon = ({ size = 18 }: { size?: number }) => (
   </svg>
 );
 
+const MessengerIcon = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.974 12-11.111C24 4.974 18.627 0 12 0zm1.291 14.392l-3.058-3.259-5.965 3.259 6.559-6.963 3.13 3.259 5.893-3.259-6.559 6.963z"/>
+  </svg>
+);
+
 export default function PreviewSite({ site, isEditor = false }: { site: any, isEditor?: boolean }) {
   if (!site) return null;
 
-  const { content, businessName, whatsappNumber } = site;
+  const { content, businessName, whatsappNumber, messengerUsername } = site;
   const whatsappLink = whatsappNumber ? `https://wa.me/${whatsappNumber}?text=Hi, I would like to order...` : '#';
+  const messengerLink = messengerUsername ? `https://m.me/${messengerUsername.replace('@', '')}` : '#';
   
   const getAnimClass = (customStyle?: string) => {
     const style = customStyle || site.animationStyle || 'reveal';
@@ -293,15 +300,24 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
                     <div className="p-3 md:p-4 flex flex-col flex-1">
                       <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm md:text-base leading-tight">{product.name}</h3>
                       <p className="font-bold text-brand-accent text-sm md:text-base mt-1.5 mb-3">{product.price}</p>
-                      <div className="mt-auto">
+                      <div className="grid grid-cols-2 gap-2 mt-auto">
                         <a
                           href={`https://wa.me/${whatsappNumber}?text=Hi, I am interested in ${product.name} (${product.price})`}
                           target="_blank"
                           rel="noreferrer"
-                          className="w-full flex items-center justify-center bg-gray-50 text-gray-700 py-2 md:py-2.5 rounded-xl transition-colors font-medium text-xs md:text-sm border border-gray-100 btn-order-hover"
+                          className="flex items-center justify-center bg-green-50 text-green-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-green-100 hover:bg-green-100"
                         >
-                          <MessageCircle size={16} className="mr-1.5 text-brand-accent icon-accent transition-colors" />
-                          Order
+                          <MessageCircle size={14} className="mr-1" />
+                          WhatsApp
+                        </a>
+                        <a
+                          href={messengerUsername ? `https://m.me/${messengerUsername.replace('@', '')}` : '#'}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center bg-blue-50 text-blue-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-blue-100 hover:bg-blue-100"
+                        >
+                          <MessengerIcon size={14} className="mr-1" />
+                          Messenger
                         </a>
                       </div>
                     </div>
@@ -435,7 +451,7 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
         <div className="max-w-6xl mx-auto border-t border-gray-800 pt-8 text-sm text-gray-500 flex flex-col md:flex-row justify-between items-center text-center">
             <span>&copy; {new Date().getFullYear()} {businessName}. All rights reserved.</span>
             <span className="mt-4 md:mt-0 text-xs flex items-center bg-gray-800 px-3 py-1 rounded-full text-gray-400">
-              Powered with ❤️ by NepalSites Builder
+              Powered with ❤️ by MeroBusiness
             </span>
         </div>
       </footer>
@@ -453,11 +469,20 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
         )}
         <a 
           href={whatsappLink}
-          className="flex-[2] pointer-events-auto h-12 bg-green-500 rounded-2xl flex items-center justify-center shadow-2xl text-white font-bold text-sm"
+          className="flex-1 pointer-events-auto h-12 bg-green-500 rounded-2xl flex items-center justify-center shadow-2xl text-white font-bold text-xs"
         >
-          <MessageCircle size={18} className="mr-2" />
-          WhatsApp Order
+          <MessageCircle size={18} className="mr-1.5" />
+          WhatsApp
         </a>
+        {messengerUsername && (
+          <a 
+            href={messengerLink}
+            className="flex-1 pointer-events-auto h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl text-white font-bold text-xs"
+          >
+            <MessengerIcon size={18} className="mr-1.5" />
+            Messenger
+          </a>
+        )}
       </div>
     </div>
   );

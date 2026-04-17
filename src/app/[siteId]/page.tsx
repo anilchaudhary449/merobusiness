@@ -1,14 +1,12 @@
 import PreviewSite from '@/components/PreviewSite';
-import { dbConnect } from '@/lib/mongoose';
-import Website from '@/models/Website';
+import { getWebsiteBySlug } from '@/lib/website-repository';
 import { notFound } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function generateMetadata({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
-  await dbConnect();
-  const site = await Website.findOne({ slug: siteId });
+  const site = await getWebsiteBySlug(siteId);
   
   if (!site) return { title: 'Site not found' };
   if (site.isActive === false) return { title: `${site.businessName} — Temporarily Unavailable` };
@@ -30,8 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ siteId: s
 
 export default async function PublicWebsite({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
-  await dbConnect();
-  const siteRaw = await Website.findOne({ slug: siteId }).lean() as any;
+  const siteRaw = await getWebsiteBySlug(siteId) as any;
   
   if (!siteRaw) {
     notFound();

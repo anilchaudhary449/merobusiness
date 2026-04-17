@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
-import { dbConnect } from '@/lib/mongoose';
-import Website from '@/models/Website';
+import {
+  deleteWebsiteById,
+  getWebsiteById,
+  toggleWebsiteActiveById,
+  updateWebsiteById,
+} from '@/lib/website-repository';
 
 // Get a single website by ID
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await dbConnect();
-    const website = await Website.findById(id);
+    const website = await getWebsiteById(id);
     if (!website) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(website);
   } catch (error) {
@@ -28,9 +31,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       navBgColor: data.navBgColor
     });
     console.log('----------------------------');
-    await dbConnect();
-    
-    const website = await Website.findByIdAndUpdate(id, data, { new: true });
+    const website = await updateWebsiteById(id, data);
+    if (!website) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(website);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -41,8 +43,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await dbConnect();
-    const website = await Website.findByIdAndDelete(id);
+    const website = await deleteWebsiteById(id);
     if (!website) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ message: 'Deleted successfully' });
   } catch (error) {
@@ -54,12 +55,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await dbConnect();
-    const website = await Website.findById(id);
+    const website = await toggleWebsiteActiveById(id);
     if (!website) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    website.isActive = !website.isActive;
-    await website.save();
-    return NextResponse.json({ isActive: website.isActive });
+    return NextResponse.json(website);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
