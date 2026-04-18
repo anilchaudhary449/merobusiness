@@ -14,6 +14,9 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        if (!process.env.NEXTAUTH_SECRET && process.env.NODE_ENV === 'production') {
+          console.error("FATAL ERROR: NEXTAUTH_SECRET is not defined in production environment.");
+        }
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Missing email or password");
         }
