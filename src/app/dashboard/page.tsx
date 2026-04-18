@@ -16,29 +16,7 @@ import {
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { toast } from 'sonner';
 import { THEME_PRESETS, getThemePreset } from '@/lib/theme-presets';
-
-const PREPARED_QUESTIONS = [
-  { 
-    id: 'theme', 
-    q: 'How do I change my store theme?', 
-    a: 'Go to the "Theme Rollout Manager" (if permitted) or the individual store settings, select a preset from the dropdown, and click "Apply".' 
-  },
-  { 
-    id: 'inactive', 
-    q: 'Why is my store currently inactive?', 
-    a: 'Stores may be deactivated by Super-Admins during maintenance or if your profile verification is pending. Contact support if this persists.' 
-  },
-  { 
-    id: 'profile', 
-    q: 'How do I update my business profile?', 
-    a: 'Click the "User Cog" icon in the top right to open Profile Settings. Note that changes require Super-Admin approval.' 
-  },
-  { 
-    id: 'slug', 
-    q: 'Can I change my website URL/slug?', 
-    a: 'URL slugs are fixed upon creation to maintain SEO. If you need a change, please raise an official support ticket below.' 
-  }
-];
+import { PREPARED_QUESTIONS, FAQ_TRIGGER_PREFIX } from '@/lib/constants/support';
 
 const fetcher = (url: string) => fetch(url).then(async (res) => {
   const data = await res.json();
@@ -297,7 +275,7 @@ export default function Dashboard() {
       const res = await fetch('/api/support', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: `[FAQ] ${faq.q}` }),
+        body: JSON.stringify({ text: `${FAQ_TRIGGER_PREFIX}${faq.id}` }),
       });
       if (!res.ok) throw new Error('Failed to raise ticket');
       mutateSupport();
@@ -581,7 +559,7 @@ export default function Dashboard() {
                     <div className="mt-3 p-4 bg-indigo-50/50 border border-indigo-100 rounded-[20px] animate-in fade-in slide-in-from-top-2 duration-300">
                       <div className="flex items-center gap-2 mb-1.5 text-indigo-600">
                         <CheckCircle2 size={14} />
-                        <span className="text-[10px] font-black uppercase tracking-wider">Instant Solution</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider">MeroBusiness Assistant</span>
                       </div>
                       <p className="text-xs text-slate-700 leading-relaxed font-medium">
                         {PREPARED_QUESTIONS.find(f => f.id === activeFAQ)?.a}

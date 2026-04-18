@@ -4,6 +4,7 @@ import { dbConnect } from '@/lib/mongoose';
 import SupportTicket from '@/models/SupportTicket';
 import User from '@/models/User';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { PREPARED_QUESTIONS, FAQ_TRIGGER_PREFIX } from '@/lib/constants/support';
 
 export async function GET(req: Request) {
   try {
@@ -68,7 +69,31 @@ export async function POST(req: Request) {
       createdAt: new Date(),
     });
     ticket.lastMessageAt = new Date();
-    ticket.status = 'OPEN'; // Re-open if it was resolved
+    ticket.status = 'OPEN'; // Default to open for new messages
+
+    // Automated FAQ logic
+    if (text.startsWith(FAQ_TRIGGER_PREFIX)) {
+      const faqId = text.replace(FAQ_TRIGGER_PREFIX, '');
+      const faq = PREPARED_QUESTIONS.find(f => f.id === faqId);
+      
+      if (faq) {
+        // Find a super-admin to act as the responder
+        const superAdmin = await User.findOne({ role: 'SUPER_ADMIN' });
+        if (superAdmin) {
+          // Replace the trigger message with a cleaner Admin message
+          ticket.messages[ticket.messages.length - 1].text = `[Need Help] ${faq.q}`;
+          
+          // Add automated reply
+          ticket.messages.push({
+            senderId: superAdmin._id.toString(),
+            text: `[MeroBusiness Assistant] ${faq.a}`,
+            createdAt: new Date(),
+          });
+          ticket.status = 'RESOLVED';
+        }
+      }
+    }
+
     await ticket.save();
 
     return NextResponse.json(ticket);
