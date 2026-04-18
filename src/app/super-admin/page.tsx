@@ -155,7 +155,7 @@ export default function SuperAdminDashboard() {
         </header>
 
         <div className="grid grid-cols-1 gap-6">
-          {admins.map((admin: any) => (
+          {Array.isArray(admins) && admins.map((admin: any) => (
             <div key={admin._id} className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
               <div className="flex items-center space-x-6">
                 <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">

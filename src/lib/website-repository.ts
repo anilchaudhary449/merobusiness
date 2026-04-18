@@ -166,6 +166,13 @@ async function withFallback<T>(mongoOperation: () => Promise<T>, localOperation:
     await dbConnect();
     return await mongoOperation();
   } catch (error) {
+    const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+    
+    if (isProduction) {
+      console.error('Database connection failed in production:', error);
+      throw new Error('Database service is currently unavailable. Please check your connection string and IP whitelist.');
+    }
+
     if (!isMongoConnectionError(error)) {
       throw error;
     }
