@@ -32,12 +32,16 @@ const MessengerIcon = ({ size = 18, className = '' }: { size?: number; className
   </svg>
 );
 
-export default function PreviewSite({ site, isEditor = false }: { site: any, isEditor?: boolean }) {
+export default function PreviewSite({ site, ownerInfo, isEditor = false }: { site: any; ownerInfo?: any; isEditor?: boolean }) {
   if (!site) return null;
   const [messengerNotice, setMessengerNotice] = useState('');
 
   const { content, businessName, whatsappNumber, messengerUsername } = site;
   const activeTheme = getThemePreset(site.theme);
+  
+  const displayPhone = site.directPhone || ownerInfo?.phone || '';
+  const displayEmail = site.businessEmail || ownerInfo?.email || '';
+  const displayPan = ownerInfo?.panNumber || '';
 
   const normalizeMessengerHandle = (value: string) => {
     const trimmed = value?.trim();
