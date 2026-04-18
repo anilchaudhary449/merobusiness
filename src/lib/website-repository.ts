@@ -70,16 +70,17 @@ function buildWebsiteRecord({
   userId,
   businessName,
   slug,
+  isLocal = false,
 }: {
   userId: string;
   businessName: string;
   slug: string;
+  isLocal?: boolean;
 }) {
   const timestamp = new Date().toISOString();
   const preset = getThemePreset('boutique');
 
-  return {
-    _id: randomUUID(),
+  const record: any = {
     userId,
     slug,
     isActive: true,
@@ -152,6 +153,12 @@ function buildWebsiteRecord({
     createdAt: timestamp,
     updatedAt: timestamp,
   };
+
+  if (isLocal) {
+    record._id = randomUUID();
+  }
+
+  return record;
 }
 
 async function withFallback<T>(mongoOperation: () => Promise<T>, localOperation: () => Promise<T>) {
@@ -201,12 +208,7 @@ export async function getWebsiteBySlug(slug: string) {
 export async function createWebsiteForUser(userId: string, data: { businessName: string; slug: string }) {
   return withFallback(
     async () => {
-      const existing = await Website.findOne({ slug: data.slug }).lean();
-      if (existing) {
-        throw new Error('URL Slug already taken');
-      }
-
-      const website = await Website.create(buildWebsiteRecord({ userId, ...data }));
+      const website = await Website.create(buildWebsiteRecord({ userId, ...data, isLocal: false }));
       return clone(website.toObject());
     },
     async () => {
@@ -216,7 +218,7 @@ export async function createWebsiteForUser(userId: string, data: { businessName:
         throw new Error('URL Slug already taken');
       }
 
-      const website = buildWebsiteRecord({ userId, ...data });
+      const website = buildWebsiteRecord({ userId, ...data, isLocal: true });
       websites.push(website);
       await writeLocalWebsites(websites);
       return website;
@@ -290,6 +292,26 @@ export async function toggleWebsiteActiveById(id: string) {
       };
       await writeLocalWebsites(websites);
       return { isActive: websites[index].isActive };
+    }
+  );
+}
+
+export async function listAllWebsites() {
+  return withFallback(
+    async () => clone(await Website.find({}).sort({ createdAt: -1 }).lean()),
+    async () => {
+      const websites = await readLocalWebsites();
+      return sortNewestFirst(websites);
+    }
+  );
+}
+
+export async function getWebsitesByIds(ids: string[]) {
+  return withFallback(
+    async () => clone(await Website.find({ _id: { $in: ids } }).sort({ createdAt: -1 }).lean()),
+    async () => {
+      const websites = await readLocalWebsites();
+      return sortNewestFirst(websites.filter((website) => ids.includes(website._id)));
     }
   );
 }

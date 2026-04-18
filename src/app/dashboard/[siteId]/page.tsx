@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   Save, ArrowLeft, Eye, Smartphone, Monitor, CheckCircle2,
   Palette, Type, ImageIcon, Store, MapPin, MessageCircle, Info, Layout, Package, Map, Sparkles
@@ -84,6 +85,7 @@ const INT_TO_EU_SIZE_MAP: Record<string, string> = {
 
 export default function Builder({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = use(params);
+  const { data: session, status } = useSession();
   const [site, setSite] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -119,18 +121,37 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
   };
 
   useEffect(() => {
-    fetch(`/api/websites/${siteId}`)
-      .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Site not found');
-        return data;
-      })
-      .then(data => setSite(data))
-      .catch(err => {
-        console.error('Builder fetch error:', err);
-        setError(err.message);
-      });
-  }, [siteId]);
+    if (status === 'unauthenticated') {
+      router.push('/login');
+      return;
+    }
+
+    if (status === 'authenticated' && session?.user) {
+      const user = session.user as any;
+      const isSuperAdmin = user.role === 'SUPER_ADMIN';
+      const hasAccess = isSuperAdmin || user.assignedSiteIds?.includes(siteId);
+
+      if (!hasAccess) {
+        toast.error('Access Denied', { description: 'You do not have permission to edit this site.' });
+        router.push('/dashboard');
+        return;
+      }
+    }
+
+    if (status === 'authenticated') {
+      fetch(`/api/websites/${siteId}`)
+        .then(async res => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Site not found');
+          return data;
+        })
+        .then(data => setSite(data))
+        .catch(err => {
+          console.error('Builder fetch error:', err);
+          setError(err.message);
+        });
+    }
+  }, [siteId, status, session, router]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -304,114 +325,115 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
 
         <div className="flex-1 overflow-y-auto p-5 space-y-8 pb-32">
 
-          {/* 1. Global Aesthetics */}
-          <section>
-            <div className="flex items-center space-x-2 mb-4">
-              <Palette size={18} className="text-indigo-500" />
-              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Global Aesthetics</h3>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Font Family</label>
-                <select
-                  value={site.fontFamily || 'Inter'}
-                  onChange={(e) => {
-                    setSite({ ...site, fontFamily: e.target.value });
-                    markDirty('fontFamily');
-                  }}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                >
-                  {FONT_OPTIONS.map(font => (
-                    <option key={font.value} value={font.value}>{font.label}</option>
-                  ))}
-                </select>
+          {((session?.user as any)?.permissions?.canChangeTheme || (session?.user as any)?.role === 'SUPER_ADMIN') && (
+            <section>
+              <div className="flex items-center space-x-2 mb-4">
+                <Palette size={18} className="text-indigo-500" />
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Global Aesthetics</h3>
               </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Font Family</label>
+                  <select
+                    value={site.fontFamily || 'Inter'}
+                    onChange={(e) => {
+                      setSite({ ...site, fontFamily: e.target.value });
+                      markDirty('fontFamily');
+                    }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    {FONT_OPTIONS.map(font => (
+                      <option key={font.value} value={font.value}>{font.label}</option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Brand Color</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={site.primaryColor || '#f59e0b'}
-                      onChange={(e) => {
-                        setSite({ ...site, primaryColor: e.target.value });
-                        markDirty('primaryColor');
-                      }}
-                      className="w-8 h-8 rounded cursor-pointer p-0 border-0"
-                    />
-                    <span className="text-xs text-gray-500 uppercase font-mono">{site.primaryColor || '#f59e0b'}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Brand Color</label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={site.primaryColor || '#f59e0b'}
+                        onChange={(e) => {
+                          setSite({ ...site, primaryColor: e.target.value });
+                          markDirty('primaryColor');
+                        }}
+                        className="w-8 h-8 rounded cursor-pointer p-0 border-0"
+                      />
+                      <span className="text-xs text-gray-500 uppercase font-mono">{site.primaryColor || '#f59e0b'}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Page Background</label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={site.backgroundColor || '#ffffff'}
+                        onChange={(e) => {
+                          setSite({ ...site, backgroundColor: e.target.value });
+                          markDirty('backgroundColor');
+                        }}
+                        className="w-8 h-8 rounded cursor-pointer p-0 border border-gray-100"
+                      />
+                      <span className="text-xs text-gray-500 uppercase font-mono">{site.backgroundColor || '#ffffff'}</span>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Page Background</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={site.backgroundColor || '#ffffff'}
-                      onChange={(e) => {
-                        setSite({ ...site, backgroundColor: e.target.value });
-                        markDirty('backgroundColor');
-                      }}
-                      className="w-8 h-8 rounded cursor-pointer p-0 border border-gray-100"
-                    />
-                    <span className="text-xs text-gray-500 uppercase font-mono">{site.backgroundColor || '#ffffff'}</span>
-                  </div>
-                </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Heading Style</label>
-                <select
-                  value={site.headingWeight || '800'}
-                  onChange={(e) => {
-                    setSite({ ...site, headingWeight: e.target.value });
-                    markDirty('headingWeight');
-                  }}
-                  className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                >
-                  <option value="400">Normal (400)</option>
-                  <option value="600">Semibold (600)</option>
-                  <option value="700">Bold (700)</option>
-                  <option value="800">Extra Bold (800)</option>
-                  <option value="900">Black (900)</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Heading Style</label>
+                  <select
+                    value={site.headingWeight || '800'}
+                    onChange={(e) => {
+                      setSite({ ...site, headingWeight: e.target.value });
+                      markDirty('headingWeight');
+                    }}
+                    className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="400">Normal (400)</option>
+                    <option value="600">Semibold (600)</option>
+                    <option value="700">Bold (700)</option>
+                    <option value="800">Extra Bold (800)</option>
+                    <option value="900">Black (900)</option>
+                  </select>
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Heading Color</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={site.headingColor || '#111827'}
-                      onChange={(e) => {
-                        setSite({ ...site, headingColor: e.target.value });
-                        markDirty('headingColor');
-                      }}
-                      className="w-8 h-8 rounded cursor-pointer p-0 border-0"
-                    />
-                    <span className="text-xs text-gray-500 uppercase font-mono">{site.headingColor || '#111827'}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Heading Color</label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={site.headingColor || '#111827'}
+                        onChange={(e) => {
+                          setSite({ ...site, headingColor: e.target.value });
+                          markDirty('headingColor');
+                        }}
+                        className="w-8 h-8 rounded cursor-pointer p-0 border-0"
+                      />
+                      <span className="text-xs text-gray-500 uppercase font-mono">{site.headingColor || '#111827'}</span>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Body Text Color</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={site.textColor || '#4b5563'}
-                      onChange={(e) => {
-                        setSite({ ...site, textColor: e.target.value });
-                        markDirty('textColor');
-                      }}
-                      className="w-8 h-8 rounded cursor-pointer p-0 border-0"
-                    />
-                    <span className="text-xs text-gray-500 uppercase font-mono">{site.textColor || '#4b5563'}</span>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Body Text Color</label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={site.textColor || '#4b5563'}
+                        onChange={(e) => {
+                          setSite({ ...site, textColor: e.target.value });
+                          markDirty('textColor');
+                        }}
+                        className="w-8 h-8 rounded cursor-pointer p-0 border-0"
+                      />
+                      <span className="text-xs text-gray-500 uppercase font-mono">{site.textColor || '#4b5563'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
           {/* 2. Brand Identity */}
           <section>
