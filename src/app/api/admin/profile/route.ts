@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { dbConnect } from "@/lib/mongoose";
 import User from "@/models/User";
+import { validatePhoneNumber } from "@/lib/phone-validation";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -49,6 +50,16 @@ export async function PATCH(req: Request) {
     // Compare and identify actual changes
     for (const field of allowedFields) {
       if (data[field] !== undefined && data[field] !== user[field]) {
+         // Validation for phone
+         if (field === 'phone') {
+            const [dialCode, ...rest] = data[field].split(' ');
+            const phoneDigits = rest.join('');
+            const validation = validatePhoneNumber(dialCode, phoneDigits);
+            if (!validation.isValid) {
+              return NextResponse.json({ error: validation.error }, { status: 400 });
+            }
+         }
+
          if (user.role === 'SUPER_ADMIN') {
            directUpdates[field] = data[field];
          } else {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { validatePhoneNumber } from "@/lib/phone-validation";
 
 export async function POST(req: Request) {
   try {
@@ -11,6 +12,14 @@ export async function POST(req: Request) {
     // --- Validation ---
     if (!username || !password || !phone || !panNumber || !businessName) {
       return NextResponse.json({ error: "All fields are required." }, { status: 400 });
+    }
+
+    // Phone Validation
+    const [dialCode, ...rest] = phone.split(' ');
+    const phoneDigits = rest.join('');
+    const validation = validatePhoneNumber(dialCode, phoneDigits);
+    if (!validation.isValid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
     if (username.length < 3) {
       return NextResponse.json({ error: "Username must be at least 3 characters." }, { status: 400 });

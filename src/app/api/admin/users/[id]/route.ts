@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { dbConnect } from "@/lib/mongoose";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { validatePhoneNumber } from "@/lib/phone-validation";
 
 async function getSuperAdminSession() {
   const session = await getServerSession(authOptions);
@@ -32,7 +33,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     
     const updateData: any = {};
     for (const field of allowedFields) {
-      if (data[field] !== undefined) updateData[field] = data[field];
+      if (data[field] !== undefined) {
+        // Validation for phone
+        if (field === 'phone' && data[field]) {
+          const [dialCode, ...rest] = data[field].split(' ');
+          const phoneDigits = rest.join('');
+          const validation = validatePhoneNumber(dialCode, phoneDigits);
+          if (!validation.isValid) {
+            return NextResponse.json({ error: validation.error }, { status: 400 });
+          }
+        }
+        updateData[field] = data[field];
+      }
     }
 
     // Hash password only if provided

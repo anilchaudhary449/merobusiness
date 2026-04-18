@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { dbConnect } from "@/lib/mongoose";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { validatePhoneNumber } from "@/lib/phone-validation";
 
 // Utility to check if user is Super-Admin
 async function getSuperAdminSession() {
@@ -38,10 +39,20 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { email, password, name, permissions, assignedSiteIds } = await req.json();
+    const { email, password, name, phone, permissions, assignedSiteIds } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+    }
+
+    // Phone Validation
+    if (phone) {
+      const [dialCode, ...rest] = phone.split(' ');
+      const phoneDigits = rest.join('');
+      const validation = validatePhoneNumber(dialCode, phoneDigits);
+      if (!validation.isValid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
     }
 
     await dbConnect();
@@ -55,6 +66,7 @@ export async function POST(req: Request) {
       email: email.toLowerCase(),
       password: hashedPassword,
       name,
+      phone,
       role: 'ADMIN',
       permissions: permissions || { canChangeTheme: false },
       assignedSiteIds: assignedSiteIds || [],
