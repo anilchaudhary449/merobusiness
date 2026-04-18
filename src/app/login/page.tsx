@@ -32,18 +32,25 @@ export default function LoginPage() {
           description: 'Redirecting to your workspace...',
         });
         
-        // Wait a bit for the session to propagate then redirect
-        // We'll fetch the session to determine the role and redirect accordingly
-        const res = await fetch('/api/auth/session');
-        const session = await res.json();
-        
-        if (session?.user?.role === 'SUPER_ADMIN') {
-          router.push('/super-admin');
-        } else {
-          router.push('/dashboard');
-        }
-        router.refresh();
+        // Use window.location.href for a more reliable redirect in production
+        // and add a small delay so the user can actually see the success toast
+        setTimeout(async () => {
+          try {
+            const res = await fetch('/api/auth/session');
+            const session = await res.json();
+            
+            if (session?.user?.role === 'SUPER_ADMIN') {
+              window.location.href = '/super-admin';
+            } else {
+              window.location.href = '/dashboard';
+            }
+          } catch (error) {
+            // Fallback to dashboard if session fetch fails
+            window.location.href = '/dashboard';
+          }
+        }, 800);
       }
+
     } catch (error) {
       toast.error('Unexpected error');
     } finally {
