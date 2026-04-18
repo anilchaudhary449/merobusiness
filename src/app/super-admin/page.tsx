@@ -520,7 +520,29 @@ export default function SuperAdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Phone</label>
-                  <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="+977..." />
+                  <div className="relative flex">
+                    <select 
+                      value={formData.countryCode}
+                      onChange={e => setFormData({...formData, countryCode: e.target.value})}
+                      className="absolute inset-y-0 left-0 pl-2 pr-1 bg-slate-100 border border-slate-200 border-r-0 rounded-l-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 z-10 text-[11px] font-bold appearance-none w-[65px] cursor-pointer"
+                    >
+                      <option value="+977">+977</option>
+                      <option value="+91">+91</option>
+                      <option value="+1">+1</option>
+                      <option value="+44">+44</option>
+                      <option value="+61">+61</option>
+                      <option value="+971">+971</option>
+                      <option value="+974">+974</option>
+                    </select>
+                    <input 
+                      type="tel" 
+                      required 
+                      value={formData.phone} 
+                      onChange={e => setFormData({...formData, phone: e.target.value.replace(/[^0-9]/g, '')})} 
+                      className="w-full pl-[70px] pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" 
+                      placeholder="98XXXXXXXX" 
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">PAN Number</label>
