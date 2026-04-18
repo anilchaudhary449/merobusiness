@@ -31,6 +31,14 @@ export const authOptions: NextAuthOptions = {
             throw new Error("User not found or password not set");
           }
 
+          // Block login for non-active accounts
+          if (user.status === 'PENDING') {
+            throw new Error("Your account is pending approval by the Super-Admin. Please wait.");
+          }
+          if (user.status === 'REJECTED') {
+            throw new Error("Your registration has been rejected. Please contact the administrator.");
+          }
+
           const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
 
           if (!isPasswordCorrect) {
