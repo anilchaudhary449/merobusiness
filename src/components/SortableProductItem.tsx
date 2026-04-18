@@ -6,6 +6,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2 } from 'lucide-react';
 import ImageUpload from './ImageUpload';
 
+const EU_SIZE_OPTIONS = ['', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'];
+const INT_SIZE_OPTIONS = ['', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
 interface SortableProductItemProps {
   id: string;
   index: number;
@@ -73,6 +76,56 @@ export default function SortableProductItem({ id, index, product, updateProduct,
           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
           placeholder="Price (e.g. Rs. 1500)"
         />
+        <div className="grid grid-cols-2 gap-3">
+          <select
+            value={product.sizeEU || ''}
+            onChange={(e) => updateProduct(index, 'sizeEU', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30 bg-white"
+          >
+            {EU_SIZE_OPTIONS.map((size) => (
+              <option key={size || 'empty-eu'} value={size}>
+                {size ? `EU ${size}` : 'Select EU size'}
+              </option>
+            ))}
+          </select>
+          <select
+            value={product.sizeINT || ''}
+            onChange={(e) => updateProduct(index, 'sizeINT', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30 bg-white"
+          >
+            {INT_SIZE_OPTIONS.map((size) => (
+              <option key={size || 'empty-int'} value={size}>
+                {size || 'Select INT size'}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="text-[11px] text-gray-500 -mt-1">
+          EU and INT sizes auto-match each other when either one is selected.
+        </p>
+        <div className="grid grid-cols-3 gap-3">
+          <input
+            type="text"
+            value={product.dimensions?.length || ''}
+            onChange={(e) => updateProduct(index, 'dimensions.length', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
+            placeholder="Length"
+          />
+          <input
+            type="text"
+            value={product.dimensions?.width || ''}
+            onChange={(e) => updateProduct(index, 'dimensions.width', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
+            placeholder="Width"
+          />
+          <input
+            type="text"
+            value={product.dimensions?.height || ''}
+            onChange={(e) => updateProduct(index, 'dimensions.height', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
+            placeholder="Height"
+          />
+        </div>
         <ImageUpload 
           value={product.imageUrl} 
           onChange={(url) => updateProduct(index, 'imageUrl', url)}

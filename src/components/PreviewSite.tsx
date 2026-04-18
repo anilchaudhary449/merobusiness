@@ -5,6 +5,7 @@ import {
   Phone, MessageCircle, MapPin, Search, ExternalLink, 
   Mail, PhoneCall, Globe, Music
 } from 'lucide-react';
+import { getThemePreset } from '@/lib/theme-presets';
 
 // Inline SVG social icons (not available in lucide-react v1.8)
 const FacebookIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
@@ -36,6 +37,7 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
   const [messengerNotice, setMessengerNotice] = useState('');
 
   const { content, businessName, whatsappNumber, messengerUsername } = site;
+  const activeTheme = getThemePreset(site.theme);
 
   const normalizeMessengerHandle = (value: string) => {
     const trimmed = value?.trim();
@@ -67,6 +69,10 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
   const whatsappLink = buildWhatsAppLink('Hi, I would like to order...');
   const messengerLink = buildMessengerLink('Hi, I would like to order...');
   const defaultOrderMessage = `Hi, I would like to order from ${businessName}.`;
+  const themeCardClass = site.backgroundColor === '#0b0b0f' || site.backgroundColor === '#020617' || site.backgroundColor === '#140f1f'
+    ? 'bg-white/5 border-white/10'
+    : 'bg-white border-gray-100';
+  const isDarkTheme = themeCardClass.includes('bg-white/5');
 
   const handleMessengerOrder = async (
     event: React.MouseEvent<HTMLAnchorElement>,
@@ -188,6 +194,7 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
           --brand-head-font: '${site.fontFamily || 'Inter'}', sans-serif;
           --brand-heading-weight: ${site.headingWeight || '800'};
           --brand-bg: ${site.backgroundColor || '#f9fafb'};
+          --brand-surface: ${site.productsBgColor || '#ffffff'};
         }
         .text-brand-accent { color: var(--brand-primary); }
         .bg-brand-accent { background-color: var(--brand-primary); }
@@ -232,6 +239,11 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
         .btn-order-hover:hover .icon-accent {
           color: white !important;
         }
+        .theme-chip {
+          background: linear-gradient(135deg, rgba(var(--brand-primary-rgb), 0.18), rgba(var(--brand-primary-rgb), 0.04));
+          border: 1px solid rgba(var(--brand-primary-rgb), 0.22);
+          color: var(--brand-heading);
+        }
       `}} />
 
       {/* Navigation */}
@@ -248,13 +260,16 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
           {site.logoUrl ? (
             <img src={site.logoUrl} alt={businessName} className="h-8 md:h-10 w-auto object-contain" />
           ) : (
-            <div 
-              className={`font-bold text-xl tracking-tight hover:shimmer-text cursor-default ${getAnimClass(site.navAnimationStyle)}`}
-              style={{ fontWeight: 'var(--section-weight, 700)', color: 'var(--brand-heading)' }}
-            >
+          <div 
+            className={`font-bold text-xl tracking-tight hover:shimmer-text cursor-default ${getAnimClass(site.navAnimationStyle)}`}
+            style={{ fontWeight: 'var(--section-weight, 700)', color: 'var(--brand-heading)' }}
+          >
               {businessName}
-            </div>
+          </div>
           )}
+          <span className="theme-chip hidden lg:inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em]">
+            {activeTheme.label}
+          </span>
         </div>
         <div className="hidden md:flex space-x-6 text-sm font-medium">
           <a href="#hero" className="hover:text-brand-accent transition-colors" style={{ color: 'inherit' }}>Home</a>
@@ -351,7 +366,7 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
             {content.products && content.products.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
                 {content.products.map((product: any) => (
-                  <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 group transition-all hover:shadow-md hover:-translate-y-1 flex flex-col h-full">
+                  <div key={product.id} className={`${themeCardClass} rounded-2xl overflow-hidden shadow-sm border group transition-all hover:shadow-md hover:-translate-y-1 flex flex-col h-full`}>
                     <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
                       <img
                         src={product.imageUrl}
@@ -360,8 +375,23 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
                       />
                     </div>
                     <div className="p-3 md:p-4 flex flex-col flex-1">
-                      <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm md:text-base leading-tight">{product.name}</h3>
+                      <h3 className={`line-clamp-2 text-sm md:text-base leading-tight font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{product.name}</h3>
                       <p className="font-bold text-brand-accent text-sm md:text-base mt-1.5 mb-3">{product.price}</p>
+                      {(product.sizeEU || product.sizeINT) && (
+                        <div className="mb-2 flex flex-wrap gap-2 text-[10px] md:text-xs">
+                          {product.sizeEU && (
+                            <span className={`rounded-full px-2.5 py-1 font-semibold ${isDarkTheme ? 'bg-white/10 text-white/80' : 'bg-black/5 text-gray-600'}`}>EU {product.sizeEU}</span>
+                          )}
+                          {product.sizeINT && (
+                            <span className={`rounded-full px-2.5 py-1 font-semibold ${isDarkTheme ? 'bg-white/10 text-white/80' : 'bg-black/5 text-gray-600'}`}>INT {product.sizeINT}</span>
+                          )}
+                        </div>
+                      )}
+                      {(product.dimensions?.length || product.dimensions?.width || product.dimensions?.height) && (
+                        <p className={`mb-3 text-[10px] md:text-xs ${isDarkTheme ? 'text-white/60' : 'text-gray-500'}`}>
+                          Size: {product.dimensions?.length || '-'} x {product.dimensions?.width || '-'} x {product.dimensions?.height || '-'}
+                        </p>
+                      )}
                       <div className="grid grid-cols-2 gap-2 mt-auto">
                         <a
                           href={buildWhatsAppLink(`Hi, I am interested in ${product.name} of ${product.price}`)}

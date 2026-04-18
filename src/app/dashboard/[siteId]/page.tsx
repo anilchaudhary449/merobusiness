@@ -38,6 +38,7 @@ const FONT_OPTIONS = [
   { value: 'Merriweather', label: 'Merriweather (Readable)' },
   { value: 'Open Sans', label: 'Open Sans (Versatile)' },
   { value: 'Cinzel', label: 'Cinzel (Roman Heritage)' },
+  { value: 'Cormorant Garamond', label: 'Cormorant Garamond (Editorial)' },
   { value: 'Pacifico', label: 'Pacifico (Playful Script)' },
   { value: 'JetBrains Mono', label: 'JetBrains Mono (Technical)' },
 ];
@@ -54,6 +55,32 @@ const ANIMATION_OPTIONS = [
   { value: 'skew-in', label: 'Creative Skew (Unique)' },
   { value: 'none', label: 'No Animation' },
 ];
+
+const EU_TO_INT_SIZE_MAP: Record<string, string> = {
+  '34': 'XXS',
+  '35': 'XS',
+  '36': 'XS',
+  '37': 'S',
+  '38': 'S',
+  '39': 'M',
+  '40': 'M',
+  '41': 'L',
+  '42': 'L',
+  '43': 'XL',
+  '44': 'XL',
+  '45': 'XXL',
+  '46': 'XXL',
+};
+
+const INT_TO_EU_SIZE_MAP: Record<string, string> = {
+  XXS: '34',
+  XS: '35',
+  S: '37',
+  M: '39',
+  L: '41',
+  XL: '43',
+  XXL: '45',
+};
 
 export default function Builder({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = use(params);
@@ -73,6 +100,7 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
 
   const fieldLabels: Record<string, string> = {
     'businessName': 'Business Name',
+    'theme': 'Store Theme',
     'whatsappNumber': 'WhatsApp Number',
     'messengerUsername': 'Messenger Username',
     'location': 'Store Location',
@@ -155,7 +183,14 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
       id: Date.now().toString(),
       name: 'New Product',
       price: 'Rs. 1000',
-      imageUrl: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&auto=format&fit=crop'
+      imageUrl: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&auto=format&fit=crop',
+      sizeEU: '',
+      sizeINT: '',
+      dimensions: {
+        length: '',
+        width: '',
+        height: '',
+      }
     };
     markDirty('products');
     setSite({
@@ -170,7 +205,31 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
   const updateProduct = (index: number, field: string, value: string) => {
     setDirtyFields(prev => new Set(prev).add('products'));
     const updatedProducts = [...site.content.products];
-    updatedProducts[index] = { ...updatedProducts[index], [field]: value };
+
+    if (field === 'sizeEU') {
+      updatedProducts[index] = {
+        ...updatedProducts[index],
+        sizeEU: value,
+        sizeINT: value ? EU_TO_INT_SIZE_MAP[value] || '' : '',
+      };
+    } else if (field === 'sizeINT') {
+      updatedProducts[index] = {
+        ...updatedProducts[index],
+        sizeINT: value,
+        sizeEU: value ? INT_TO_EU_SIZE_MAP[value] || '' : '',
+      };
+    } else if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      updatedProducts[index] = {
+        ...updatedProducts[index],
+        [parent]: {
+          ...updatedProducts[index][parent],
+          [child]: value
+        }
+      };
+    } else {
+      updatedProducts[index] = { ...updatedProducts[index], [field]: value };
+    }
     setSite({
       ...site,
       content: { ...site.content, products: updatedProducts }

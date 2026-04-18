@@ -16,11 +16,11 @@ export async function generateMetadata({ params }: { params: Promise<{ siteId: s
     description: site.content.about.description.substring(0, 160),
     icons: {
       icon: [
-        { url: site.faviconUrl || '/favicon.ico' },
-        { url: site.faviconUrl || '/favicon.ico', rel: 'shortcut icon' },
+        { url: site.faviconUrl || '/favicon.svg' },
+        { url: site.faviconUrl || '/favicon.svg', rel: 'shortcut icon' },
       ],
       apple: [
-        { url: site.faviconUrl || '/favicon.ico' },
+        { url: site.faviconUrl || '/favicon.svg' },
       ],
     }
   };

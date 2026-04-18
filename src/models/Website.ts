@@ -83,6 +83,13 @@ export interface IWebsite extends Document {
       name: string;
       price: string;
       imageUrl: string;
+      sizeEU: string;
+      sizeINT: string;
+      dimensions: {
+        length: string;
+        width: string;
+        height: string;
+      };
     }>;
   };
   isPublished: boolean;
@@ -173,6 +180,13 @@ const WebsiteSchema = new Schema<IWebsite>(
           name: { type: String },
           price: { type: String },
           imageUrl: { type: String },
+          sizeEU: { type: String, default: '' },
+          sizeINT: { type: String, default: '' },
+          dimensions: {
+            length: { type: String, default: '' },
+            width: { type: String, default: '' },
+            height: { type: String, default: '' },
+          },
         },
       ],
     },

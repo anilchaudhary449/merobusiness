@@ -4,6 +4,7 @@ import path from 'path';
 
 import { dbConnect } from '@/lib/mongoose';
 import Website from '@/models/Website';
+import { getThemePreset } from '@/lib/theme-presets';
 
 const LOCAL_STORE_PATH = path.join(process.cwd(), 'scratch', 'local-websites.json');
 
@@ -75,6 +76,7 @@ function buildWebsiteRecord({
   slug: string;
 }) {
   const timestamp = new Date().toISOString();
+  const preset = getThemePreset('boutique');
 
   return {
     _id: randomUUID(),
@@ -82,7 +84,7 @@ function buildWebsiteRecord({
     slug,
     isActive: true,
     businessName,
-    theme: 'boutique',
+    theme: preset.value,
     whatsappNumber: '',
     location: 'Kathmandu, Nepal',
     mapConfig: {
@@ -91,35 +93,35 @@ function buildWebsiteRecord({
     },
     logoUrl: '',
     faviconUrl: '',
-    fontFamily: 'Inter',
-    primaryColor: '#f59e0b',
-    backgroundColor: '#ffffff',
-    heroBgColor: '#111827',
-    aboutBgColor: '#ffffff',
-    productsBgColor: '#f9fafb',
-    headingColor: '#111827',
-    textColor: '#4b5563',
+    fontFamily: preset.config.fontFamily,
+    primaryColor: preset.config.primaryColor,
+    backgroundColor: preset.config.backgroundColor,
+    heroBgColor: preset.config.heroBgColor,
+    aboutBgColor: preset.config.aboutBgColor,
+    productsBgColor: preset.config.productsBgColor,
+    headingColor: preset.config.headingColor,
+    textColor: preset.config.textColor,
     headingWeight: '800',
-    heroHeadingColor: '#ffffff',
-    heroTextColor: '#e5e7eb',
+    heroHeadingColor: preset.config.heroHeadingColor,
+    heroTextColor: preset.config.heroTextColor,
     heroHeadingWeight: '900',
-    aboutHeadingColor: '#111827',
-    aboutTextColor: '#4b5563',
+    aboutHeadingColor: preset.config.aboutHeadingColor,
+    aboutTextColor: preset.config.aboutTextColor,
     aboutHeadingWeight: '800',
-    productsHeadingColor: '#111827',
-    productsTextColor: '#4b5563',
+    productsHeadingColor: preset.config.productsHeadingColor,
+    productsTextColor: preset.config.productsTextColor,
     productsHeadingWeight: '800',
-    navBgColor: '#ffffff',
-    navTextColor: '#4b5563',
-    footerBgColor: '#111827',
-    footerHeadingColor: '#ffffff',
-    footerTextColor: '#9ca3af',
+    navBgColor: preset.config.navBgColor,
+    navTextColor: preset.config.navTextColor,
+    footerBgColor: preset.config.footerBgColor,
+    footerHeadingColor: preset.config.footerHeadingColor,
+    footerTextColor: preset.config.footerTextColor,
     footerHeadingWeight: '700',
-    navFontFamily: '',
-    heroFontFamily: '',
-    aboutFontFamily: '',
-    productsFontFamily: '',
-    footerFontFamily: '',
+    navFontFamily: preset.config.navFontFamily,
+    heroFontFamily: preset.config.heroFontFamily,
+    aboutFontFamily: preset.config.aboutFontFamily,
+    productsFontFamily: preset.config.productsFontFamily,
+    footerFontFamily: preset.config.footerFontFamily,
     navHeadingWeight: '700',
     businessEmail: '',
     directPhone: '',
@@ -127,9 +129,9 @@ function buildWebsiteRecord({
     instagramUrl: '',
     tiktokUrl: '',
     twitterUrl: '',
-    animationStyle: 'fade-in',
-    navAnimationStyle: 'reveal',
-    heroAnimationStyle: 'reveal',
+    animationStyle: preset.config.animationStyle,
+    navAnimationStyle: preset.config.navAnimationStyle,
+    heroAnimationStyle: preset.config.heroAnimationStyle,
     messengerUsername: '',
     content: {
       hero: {
