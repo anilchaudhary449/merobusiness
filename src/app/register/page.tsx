@@ -9,6 +9,7 @@ import {
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { COUNTRIES } from '@/lib/constants/countries';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
@@ -113,13 +114,20 @@ export default function RegisterPage() {
     }
 
     const phoneDigits = form.phone.replace(/[^0-9]/g, '');
-    if (form.countryCode === '+977' && phoneDigits.length !== 10) {
-      toast.error('Nepal phone numbers must be exactly 10 digits.');
-      return;
-    }
-    if (phoneDigits.length < 7 || phoneDigits.length > 15) {
-      toast.error('Phone number must be between 7 and 15 digits.');
-      return;
+    const selectedCountry = COUNTRIES.find(c => c.dial_code === form.countryCode);
+    
+    if (selectedCountry) {
+      const fullNumber = `${form.countryCode}${phoneDigits}`;
+      if (!isValidPhoneNumber(fullNumber, selectedCountry.code as any)) {
+        toast.error(`Invalid phone number format for ${selectedCountry.name}.`);
+        return;
+      }
+    } else {
+      // Fallback to basic length check if country metadata is missing
+      if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+        toast.error('Phone number must be between 7 and 15 digits.');
+        return;
+      }
     }
 
     setIsSubmitting(true);

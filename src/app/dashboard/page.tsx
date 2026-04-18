@@ -17,6 +17,8 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import { toast } from 'sonner';
 import { THEME_PRESETS, getThemePreset } from '@/lib/theme-presets';
 import { PREPARED_QUESTIONS, FAQ_TRIGGER_PREFIX } from '@/lib/constants/support';
+import { COUNTRIES } from '@/lib/constants/countries';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const fetcher = (url: string) => fetch(url).then(async (res) => {
   const data = await res.json();
@@ -211,13 +213,19 @@ export default function Dashboard() {
     e.preventDefault();
 
     const phoneDigits = profileFormData.phone.replace(/[^0-9]/g, '');
-    if (profileFormData.countryCode === '+977' && phoneDigits.length !== 10) {
-      toast.error('Nepal phone numbers must be exactly 10 digits.');
-      return;
-    }
-    if (phoneDigits.length < 7 || phoneDigits.length > 15) {
-      toast.error('Phone number must be between 7 and 15 digits.');
-      return;
+    const selectedCountry = COUNTRIES.find(c => c.dial_code === profileFormData.countryCode);
+    
+    if (selectedCountry) {
+      const fullNumber = `${profileFormData.countryCode}${phoneDigits}`;
+      if (!isValidPhoneNumber(fullNumber, selectedCountry.code as any)) {
+        toast.error(`Invalid phone number format for ${selectedCountry.name}.`);
+        return;
+      }
+    } else {
+      if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+        toast.error('Phone number must be between 7 and 15 digits.');
+        return;
+      }
     }
 
     setIsSavingProfile(true);
@@ -705,21 +713,19 @@ export default function Dashboard() {
                     <select 
                       value={profileFormData.countryCode}
                       onChange={e => setProfileFormData({...profileFormData, countryCode: e.target.value})}
-                      className="absolute inset-y-0 left-0 pl-3 pr-2 bg-slate-100 border border-slate-200 border-r-0 rounded-l-2xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 z-10 text-[11px] font-bold appearance-none w-[70px] cursor-pointer"
+                      className="absolute inset-y-0 left-0 pl-3 pr-2 bg-slate-100 border border-slate-200 border-r-0 rounded-l-2xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 z-10 text-[11px] font-bold appearance-none w-24 cursor-pointer"
                     >
-                      <option value="+977">+977</option>
-                      <option value="+91">+91</option>
-                      <option value="+1">+1</option>
-                      <option value="+44">+44</option>
-                      <option value="+61">+61</option>
-                      <option value="+971">+971</option>
-                      <option value="+974">+974</option>
+                      {COUNTRIES.map((c) => (
+                        <option key={`${c.code}-${c.dial_code}`} value={c.dial_code}>
+                          {c.flag} {c.dial_code}
+                        </option>
+                      ))}
                     </select>
                     <input 
                       type="tel" 
                       value={profileFormData.phone} 
                       onChange={e => setProfileFormData({...profileFormData, phone: e.target.value.replace(/[^0-9]/g, '')})} 
-                      className="block w-full pl-[78px] pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" 
+                      className="w-full pl-28 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" 
                       placeholder="98XXXXXXXX" 
                     />
                   </div>
