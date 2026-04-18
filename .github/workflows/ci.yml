@@ -2,6 +2,11 @@ name: CI merobusiness
 
 on:
   push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 2,10,15,22 * * *' # 4 times daily
   workflow_dispatch:
 
 concurrency:
