@@ -11,7 +11,7 @@ import { createWebsiteSchema, CreateWebsiteInput } from '@/lib/validations/websi
 import { 
   PlusCircle, Link as LinkIcon, Settings, Globe, AlertCircle, 
   Trash2, ToggleLeft, ToggleRight, Palette, LogOut, ShieldCheck,
-  LayoutDashboard, Loader2
+  LayoutDashboard, Loader2, UserCog, X
 } from 'lucide-react';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { toast } from 'sonner';
@@ -27,6 +27,16 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { data: websites, error, mutate, isLoading } = useSWR('/api/websites', fetcher);
+  const { data: userProfile, mutate: mutateUserProfile } = useSWR('/api/admin/profile', fetcher);
+  
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileFormData, setProfileFormData] = useState({
+    name: '',
+    phone: '',
+    panNumber: '',
+    businessName: ''
+  });
   
   const [submitError, setSubmitError] = useState('');
   const [selectedTheme, setSelectedTheme] = useState(THEME_PRESETS[0].value);
@@ -157,6 +167,40 @@ export default function Dashboard() {
     setSelectedWebsiteIds([]);
   };
 
+  const openProfileModal = () => {
+    if (userProfile) {
+      setProfileFormData({
+        name: userProfile.name || '',
+        phone: userProfile.phone || '',
+        panNumber: userProfile.panNumber || '',
+        businessName: userProfile.businessName || ''
+      });
+    }
+    setIsProfileModalOpen(true);
+  };
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingProfile(true);
+    try {
+      const res = await fetch('/api/admin/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileFormData),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to submit profile changes');
+      
+      toast.success(data.message || 'Profile changes submitted successfully. They will be applied once approved by a Super Administrator.');
+      mutateUserProfile();
+      setIsProfileModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -203,8 +247,22 @@ export default function Dashboard() {
               {session?.user?.email}
             </div>
             <button 
+              onClick={openProfileModal}
+              className="p-2.5 bg-white border border-indigo-100 text-indigo-500 rounded-2xl hover:bg-indigo-50 hover:text-indigo-600 transition-all relative"
+              title="Profile Settings"
+            >
+              <UserCog size={20} />
+              {userProfile?.pendingProfileChanges && Object.keys(userProfile.pendingProfileChanges).length > 0 && (
+                <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border-2 border-white"></span>
+                </span>
+              )}
+            </button>
+            <button 
               onClick={() => signOut()}
               className="p-2.5 bg-white border border-red-100 text-red-500 rounded-2xl hover:bg-red-50 transition-all"
+              title="Sign Out"
             >
               <LogOut size={20} />
             </button>
@@ -375,6 +433,59 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
+
+      {/* Admin Profile Modal */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[32px] w-full max-w-lg shadow-2xl relative overflow-hidden">
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center">
+                <UserCog className="mr-3 text-indigo-500" size={24} />
+                Profile Settings
+              </h3>
+              <button onClick={() => setIsProfileModalOpen(false)} className="text-slate-400 hover:text-slate-900"><X /></button>
+            </div>
+            
+            <form onSubmit={handleProfileSubmit} className="p-8 space-y-6">
+              {userProfile?.pendingProfileChanges && Object.keys(userProfile.pendingProfileChanges).length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                  <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+                  <div>
+                    <h4 className="text-sm font-bold text-amber-800">Changes Pending Approval</h4>
+                    <p className="text-xs text-amber-700 mt-1 font-medium">You have submitted profile updates that are currently waiting for Super-Admin review. You can override them by submitting new changes.</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">Display Name</label>
+                  <input type="text" value={profileFormData.name} onChange={e => setProfileFormData({...profileFormData, name: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="Your Name" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">Phone Number</label>
+                  <input type="tel" value={profileFormData.phone} onChange={e => setProfileFormData({...profileFormData, phone: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="+977..." />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">PAN Number</label>
+                  <input type="text" value={profileFormData.panNumber} onChange={e => setProfileFormData({...profileFormData, panNumber: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="PAN Number" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">Business Name</label>
+                  <input type="text" value={profileFormData.businessName} onChange={e => setProfileFormData({...profileFormData, businessName: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="Business Name" />
+                </div>
+              </div>
+              
+              <div className="flex space-x-3 pt-2">
+                <button type="button" onClick={() => setIsProfileModalOpen(false)} className="flex-[1] px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all">Cancel</button>
+                <button type="submit" disabled={isSavingProfile} className="flex-[2] px-4 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-70 flex items-center justify-center gap-2">
+                  {isSavingProfile ? <Loader2 className="animate-spin" size={18} /> : 'Submit Changes for Approval'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -18,6 +18,7 @@ export default function RegisterPage() {
     username: '',
     password: '',
     confirmPassword: '',
+    countryCode: '+977',
     phone: '',
     panNumber: '',
     businessName: '',
@@ -110,6 +111,16 @@ export default function RegisterPage() {
       return;
     }
 
+    const phoneDigits = form.phone.replace(/[^0-9]/g, '');
+    if (form.countryCode === '+977' && phoneDigits.length !== 10) {
+      toast.error('Nepal phone numbers must be exactly 10 digits.');
+      return;
+    }
+    if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+      toast.error('Phone number must be between 7 and 15 digits.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/auth/register', {
@@ -118,7 +129,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           username: form.username.toLowerCase().trim(),
           password: form.password,
-          phone: form.phone,
+          phone: `${form.countryCode} ${phoneDigits}`,
           panNumber: form.panNumber,
           businessName: form.businessName,
           nationalIdPhoto,
@@ -237,17 +248,30 @@ export default function RegisterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phone / Mobile</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400">
-                    <Phone size={18} />
+                <div className="relative flex">
+                  <select 
+                    value={form.countryCode}
+                    onChange={e => setForm({...form, countryCode: e.target.value})}
+                    className="absolute inset-y-0 left-0 pl-10 pr-2 bg-slate-900 border border-slate-700 border-r-0 rounded-l-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 z-10 text-[11px] font-bold appearance-none w-20 cursor-pointer"
+                  >
+                    <option value="+977">+977</option>
+                    <option value="+91">+91</option>
+                    <option value="+1">+1</option>
+                    <option value="+44">+44</option>
+                    <option value="+61">+61</option>
+                    <option value="+971">+971</option>
+                    <option value="+974">+974</option>
+                  </select>
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 z-20">
+                    <Phone size={14} />
                   </div>
                   <input
                     type="tel"
                     required
                     value={form.phone}
-                    onChange={e => setForm({ ...form, phone: e.target.value })}
-                    className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                    placeholder="+977 98XXXXXXXX"
+                    onChange={e => setForm({ ...form, phone: e.target.value.replace(/[^0-9]/g, '') })}
+                    className="block w-full pl-24 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium tracking-wide"
+                    placeholder="98XXXXXXXX"
                   />
                 </div>
               </div>
