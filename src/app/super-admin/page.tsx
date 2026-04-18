@@ -208,15 +208,15 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const handleResolveTicket = async (ticketId: string) => {
+  const handleUpdateTicketStatus = async (ticketId: string, status: string) => {
     try {
       const res = await fetch(`/api/support/${ticketId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'RESOLVED' }),
+        body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error('Failed to resolve ticket');
-      toast.success('Ticket marked as resolved');
+      if (!res.ok) throw new Error(`Failed to update to ${status}`);
+      toast.success(`Ticket marked as ${status.toLowerCase()}`);
       mutateTickets();
     } catch (err: any) {
       toast.error(err.message);
@@ -575,7 +575,13 @@ export default function SuperAdminDashboard() {
                       >
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="font-bold text-slate-900 truncate pr-2">{ticket.adminId?.businessName || ticket.adminId?.name || 'Admin'}</span>
-                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${ticket.status === 'OPEN' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
+                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
+                            ticket.status === 'OPEN' ? 'bg-red-50 text-red-600' : 
+                            ticket.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-600' :
+                            ticket.status === 'PENDING' ? 'bg-amber-50 text-amber-600' :
+                            ticket.status === 'BACKLOG' ? 'bg-slate-100 text-slate-500' :
+                            'bg-red-500 text-white'
+                          }`}>
                             {ticket.status}
                           </span>
                         </div>
@@ -615,14 +621,40 @@ export default function SuperAdminDashboard() {
                       <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                          <div>
                             <h3 className="font-bold text-slate-900">{currentTicket?.adminId?.businessName || 'Admin Chat'}</h3>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Live Session</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Session</span>
+                               <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded shrink-0 ${
+                                  currentTicket?.status === 'OPEN' ? 'bg-red-50 text-red-600' : 
+                                  currentTicket?.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-600' :
+                                  currentTicket?.status === 'PENDING' ? 'bg-amber-50 text-amber-600' :
+                                  currentTicket?.status === 'BACKLOG' ? 'bg-slate-100 text-slate-500' :
+                                  'bg-red-500 text-white'
+                               }`}>
+                                  {currentTicket?.status}
+                               </span>
+                            </div>
                          </div>
-                         <button 
-                           onClick={() => handleResolveTicket(activeTicketId!)}
-                           className="px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider border border-emerald-100 transition-all flex items-center gap-1.5"
-                         >
-                           <CheckCircle2 size={12} /> Mark Resolved
-                         </button>
+                         <div className="flex items-center gap-2">
+                           {['OPEN', 'PENDING', 'BACKLOG', 'RESOLVED', 'REJECTED'].filter(s => s !== currentTicket?.status).map(status => (
+                              <button 
+                                key={status}
+                                onClick={() => handleUpdateTicketStatus(activeTicketId!, status)}
+                                className={`px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all ${
+                                  status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white' :
+                                  status === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white' :
+                                  status === 'BACKLOG' ? 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-600 hover:text-white' :
+                                  status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-600 hover:text-white' :
+                                  'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-600 hover:text-white'
+                                }`}
+                              >
+                                {status === 'RESOLVED' && <CheckCircle2 size={10} className="inline mr-1" />}
+                                {status === 'REJECTED' && <X size={10} className="inline mr-1" />}
+                                {status === 'BACKLOG' && <History size={10} className="inline mr-1" />}
+                                {status === 'PENDING' && <Clock size={10} className="inline mr-1" />}
+                                {status}
+                              </button>
+                           ))}
+                         </div>
                       </div>
                       
                       <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">

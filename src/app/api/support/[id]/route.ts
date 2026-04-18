@@ -12,7 +12,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { id } = await params;
     const { status } = await req.json();
 
-    if (!['OPEN', 'RESOLVED'].includes(status)) {
+    if (!['OPEN', 'PENDING', 'REJECTED', 'RESOLVED', 'BACKLOG'].includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }
 

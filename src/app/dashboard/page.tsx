@@ -17,6 +17,29 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import { toast } from 'sonner';
 import { THEME_PRESETS, getThemePreset } from '@/lib/theme-presets';
 
+const PREPARED_QUESTIONS = [
+  { 
+    id: 'theme', 
+    q: 'How do I change my store theme?', 
+    a: 'Go to the "Theme Rollout Manager" (if permitted) or the individual store settings, select a preset from the dropdown, and click "Apply".' 
+  },
+  { 
+    id: 'inactive', 
+    q: 'Why is my store currently inactive?', 
+    a: 'Stores may be deactivated by Super-Admins during maintenance or if your profile verification is pending. Contact support if this persists.' 
+  },
+  { 
+    id: 'profile', 
+    q: 'How do I update my business profile?', 
+    a: 'Click the "User Cog" icon in the top right to open Profile Settings. Note that changes require Super-Admin approval.' 
+  },
+  { 
+    id: 'slug', 
+    q: 'Can I change my website URL/slug?', 
+    a: 'URL slugs are fixed upon creation to maintain SEO. If you need a change, please raise an official support ticket below.' 
+  }
+];
+
 const fetcher = (url: string) => fetch(url).then(async (res) => {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'An error occurred while fetching the data.');
@@ -59,6 +82,7 @@ export default function Dashboard() {
   });
   const [chatMessage, setChatMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [activeFAQ, setActiveFAQ] = useState<string | null>(null);
 
   const isSuperAdmin = (session?.user as any)?.role === 'SUPER_ADMIN';
   const canChangeTheme = (session?.user as any)?.permissions?.canChangeTheme || isSuperAdmin;
@@ -256,6 +280,26 @@ export default function Dashboard() {
       });
       if (!res.ok) throw new Error('Failed to send message');
       setChatMessage('');
+      mutateSupport();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const handleFAQClick = async (faq: typeof PREPARED_QUESTIONS[0]) => {
+    setActiveFAQ(faq.id);
+    // Automatically send the question to super admin as requested
+    if (isSendingMessage) return;
+    setIsSendingMessage(true);
+    try {
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: `[FAQ] ${faq.q}` }),
+      });
+      if (!res.ok) throw new Error('Failed to raise ticket');
       mutateSupport();
     } catch (err: any) {
       toast.error(err.message);
@@ -502,10 +546,48 @@ export default function Dashboard() {
                     <MessageSquare size={16} />
                     Live Support
                   </h3>
-                  {supportTicket?.status === 'RESOLVED' && (
-                    <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider border border-emerald-100 flex items-center gap-1">
-                      <CheckCircle2 size={10} /> Resolved
+                  {supportTicket?.status && supportTicket.status !== 'OPEN' && (
+                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1 ${
+                      supportTicket.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                      supportTicket.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                      supportTicket.status === 'BACKLOG' ? 'bg-slate-50 text-slate-600 border-slate-100' :
+                      'bg-red-50 text-red-600 border-red-100'
+                    }`}>
+                      {supportTicket.status === 'RESOLVED' && <CheckCircle2 size={10} />}
+                      {supportTicket.status}
                     </span>
+                  )}
+                </div>
+
+                {/* FAQ / Prepared Questions */}
+                <div className="mb-4 space-y-2">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Quick Support</p>
+                  <div className="flex flex-wrap gap-2">
+                    {PREPARED_QUESTIONS.map((faq) => (
+                      <button
+                        key={faq.id}
+                        onClick={() => handleFAQClick(faq)}
+                        className={`text-[11px] font-bold px-3 py-2 rounded-xl border transition-all ${
+                          activeFAQ === faq.id 
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
+                            : 'bg-white text-slate-600 border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30'
+                        }`}
+                      >
+                        {faq.q}
+                      </button>
+                    ))}
+                  </div>
+                  {activeFAQ && (
+                    <div className="mt-3 p-4 bg-indigo-50/50 border border-indigo-100 rounded-[20px] animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="flex items-center gap-2 mb-1.5 text-indigo-600">
+                        <CheckCircle2 size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-wider">Instant Solution</span>
+                      </div>
+                      <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                        {PREPARED_QUESTIONS.find(f => f.id === activeFAQ)?.a}
+                      </p>
+                      <p className="text-[9px] text-indigo-400 mt-2 italic">* Ticket raised automatically. We will reply soon if you have more questions.</p>
+                    </div>
                   )}
                 </div>
                 

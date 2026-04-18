@@ -8,7 +8,7 @@ export interface ISupportMessage {
 
 export interface ISupportTicket extends Document {
   adminId: mongoose.Types.ObjectId;
-  status: 'OPEN' | 'RESOLVED';
+  status: 'OPEN' | 'PENDING' | 'REJECTED' | 'RESOLVED' | 'BACKLOG';
   messages: ISupportMessage[];
   lastMessageAt: Date;
   createdAt: Date;
@@ -18,7 +18,7 @@ export interface ISupportTicket extends Document {
 const SupportTicketSchema = new Schema<ISupportTicket>(
   {
     adminId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    status: { type: String, enum: ['OPEN', 'RESOLVED'], default: 'OPEN' },
+    status: { type: String, enum: ['OPEN', 'PENDING', 'REJECTED', 'RESOLVED', 'BACKLOG'], default: 'OPEN' },
     messages: [
       {
         senderId: { type: String, required: true },
