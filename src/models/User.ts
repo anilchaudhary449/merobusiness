@@ -4,8 +4,12 @@ export interface IUser extends Document {
   email: string;
   username?: string;
   password?: string;
-  role: 'SUPER_ADMIN' | 'ADMIN';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'CUSTOMER';
   name?: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  dob?: Date;
   phone?: string;
   panNumber?: string;
   nationalIdPhoto?: string; // base64
@@ -32,8 +36,12 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true },
     username: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['SUPER_ADMIN', 'ADMIN'], default: 'ADMIN' },
-    name: { type: String },
+    role: { type: String, enum: ['SUPER_ADMIN', 'ADMIN', 'CUSTOMER'], default: 'ADMIN' },
+    name: { type: String }, // For backward compatibility
+    firstName: { type: String },
+    middleName: { type: String },
+    lastName: { type: String },
+    dob: { type: Date },
     phone: { type: String },
     panNumber: { type: String },
     nationalIdPhoto: { type: String }, // base64 image
