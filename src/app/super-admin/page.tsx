@@ -33,12 +33,12 @@ export default function SuperAdminDashboard() {
   const [rejectModal, setRejectModal] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Form State
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
     name: '',
+    countryCode: '+977',
     phone: '',
     panNumber: '',
     businessName: '',
@@ -57,12 +57,22 @@ export default function SuperAdminDashboard() {
   const handleOpenModal = (admin: any = null) => {
     if (admin) {
       setEditingAdmin(admin);
+      let code = '+977';
+      let phoneNum = admin.phone || '';
+      if (phoneNum.startsWith('+')) {
+         const parts = phoneNum.split(' ');
+         if (parts.length > 1) {
+            code = parts[0];
+            phoneNum = parts.slice(1).join(' ');
+         }
+      }
       setFormData({
         username: admin.username || '',
         email: admin.email,
         password: '',
         name: admin.name || '',
-        phone: admin.phone || '',
+        countryCode: code,
+        phone: phoneNum,
         panNumber: admin.panNumber || '',
         businessName: admin.businessName || '',
         canChangeTheme: admin.permissions?.canChangeTheme || false,
@@ -70,18 +80,33 @@ export default function SuperAdminDashboard() {
       });
     } else {
       setEditingAdmin(null);
-      setFormData({ username: '', email: '', password: '', name: '', phone: '', panNumber: '', businessName: '', canChangeTheme: false, assignedSiteIds: [] });
+      setFormData({ username: '', email: '', password: '', name: '', countryCode: '+977', phone: '', panNumber: '', businessName: '', canChangeTheme: false, assignedSiteIds: [] });
     }
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const phoneDigits = formData.phone.replace(/[^0-9]/g, '');
+    if (formData.countryCode === '+977' && phoneDigits.length !== 10) {
+      toast.error('Nepal phone numbers must be exactly 10 digits.');
+      return;
+    }
+    if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+      toast.error('Phone number must be between 7 and 15 digits.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const url = editingAdmin ? `/api/admin/users/${editingAdmin._id}` : '/api/admin/users';
       const method = editingAdmin ? 'PATCH' : 'POST';
-      const payload: any = { ...formData, permissions: { canChangeTheme: formData.canChangeTheme } };
+      const payload: any = { 
+        ...formData, 
+        phone: `${formData.countryCode} ${phoneDigits}`,
+        permissions: { canChangeTheme: formData.canChangeTheme } 
+      };
       if (!formData.password && editingAdmin) delete payload.password;
 
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
