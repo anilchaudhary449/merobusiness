@@ -495,12 +495,12 @@ export default function SuperAdminDashboard() {
       {/* Register/Edit Admin Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl relative overflow-hidden">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="bg-white rounded-[32px] w-full max-w-3xl max-h-[90vh] shadow-2xl relative overflow-hidden flex flex-col">
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <h3 className="text-xl font-bold text-slate-900">{editingAdmin ? 'Modify Admin Account' : 'Register Admin'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-900"><X /></button>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-900 p-2"><X /></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Display Name</label>
@@ -564,11 +564,11 @@ export default function SuperAdminDashboard() {
               </div>
               <div>
                 <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-3">Assign Web Management Sites</label>
-                <div className="grid grid-cols-2 gap-3 max-h-40 overflow-y-auto p-1">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1 custom-scrollbar">
                   {websites?.map((site: any) => (
-                    <div key={site._id} onClick={() => { const ids = formData.assignedSiteIds.includes(site._id) ? formData.assignedSiteIds.filter(id => id !== site._id) : [...formData.assignedSiteIds, site._id]; setFormData({...formData, assignedSiteIds: ids}); }} className={`cursor-pointer p-4 border rounded-2xl transition-all flex items-center justify-between ${formData.assignedSiteIds.includes(site._id) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}>
-                      <span className="text-sm font-bold truncate mr-2">{site.businessName}</span>
-                      {formData.assignedSiteIds.includes(site._id) ? <Check size={16} /> : <Globe size={16} className="text-slate-400" />}
+                    <div key={site._id} onClick={() => { const ids = formData.assignedSiteIds.includes(site._id) ? formData.assignedSiteIds.filter(id => id !== site._id) : [...formData.assignedSiteIds, site._id]; setFormData({...formData, assignedSiteIds: ids}); }} className={`cursor-pointer p-3 border rounded-2xl transition-all flex items-center justify-between ${formData.assignedSiteIds.includes(site._id) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}>
+                      <span className="text-[12px] font-bold truncate mr-2">{site.businessName}</span>
+                      {formData.assignedSiteIds.includes(site._id) ? <Check size={14} /> : <Globe size={14} className="text-slate-400" />}
                     </div>
                   ))}
                 </div>
@@ -599,7 +599,7 @@ export default function SuperAdminDashboard() {
       {/* Admin Info Modal */}
       {viewingAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm" onClick={() => setViewingAdmin(null)}>
-          <div className="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-[32px] w-full max-w-3xl max-h-[90vh] shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -617,7 +617,7 @@ export default function SuperAdminDashboard() {
             </div>
 
             {/* Body */}
-            <div className="p-8 space-y-6 overflow-y-auto max-h-[65vh]">
+            <div className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
               {/* Status Badge */}
               <div className="flex flex-wrap gap-2">
                 <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${

@@ -11,7 +11,7 @@ import { createWebsiteSchema, CreateWebsiteInput } from '@/lib/validations/websi
 import { 
   PlusCircle, Link as LinkIcon, Settings, Globe, AlertCircle, 
   Trash2, ToggleLeft, ToggleRight, Palette, LogOut, ShieldCheck,
-  LayoutDashboard, Loader2, UserCog, X
+  LayoutDashboard, Loader2, UserCog, X, Mail, Phone, User as UserIcon
 } from 'lucide-react';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { toast } from 'sonner';
@@ -28,6 +28,8 @@ export default function Dashboard() {
   const router = useRouter();
   const { data: websites, error, mutate, isLoading } = useSWR('/api/websites', fetcher);
   const { data: userProfile, mutate: mutateUserProfile } = useSWR('/api/admin/profile', fetcher);
+  const { data: superAdminContact } = useSWR((status === 'authenticated' && (session?.user as any).role !== 'SUPER_ADMIN') ? '/api/super-admin/contact' : null, fetcher);
+
   
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -36,7 +38,8 @@ export default function Dashboard() {
     countryCode: '+977',
     phone: '',
     panNumber: '',
-    businessName: ''
+    businessName: '',
+    email: ''
   });
   
   const [submitError, setSubmitError] = useState('');
@@ -186,7 +189,8 @@ export default function Dashboard() {
         countryCode: code,
         phone: phoneNum,
         panNumber: userProfile.panNumber || '',
-        businessName: userProfile.businessName || ''
+        businessName: userProfile.businessName || '',
+        email: userProfile.email || ''
       });
     }
     setIsProfileModalOpen(true);
@@ -338,8 +342,7 @@ export default function Dashboard() {
               </form>
             </div>
           )}
-
-          <div className={isSuperAdmin ? "md:col-span-2 space-y-6" : "md:col-span-3 space-y-6"}>
+          <div className={isSuperAdmin ? "md:col-span-2 space-y-6" : "md:col-span-2 space-y-6"}>
             {/* Bulk Theme Manager - Only if permitted */}
             {canChangeTheme && !!websites?.length && (
               <div className="rounded-[32px] border border-slate-200 bg-slate-900 p-6 shadow-2xl overflow-hidden relative group">
@@ -460,14 +463,65 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          {!isSuperAdmin && superAdminContact && (
+            <div className="md:col-span-1">
+              <div className="rounded-[32px] border border-white bg-indigo-600 p-6 shadow-xl text-white relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-700" />
+                
+                <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2">
+                  <ShieldCheck size={16} />
+                  Platform Support
+                </h3>
+                
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                      <UserIcon size={20} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold opacity-60 uppercase tracking-wider">Administrator</p>
+                      <p className="font-bold text-sm">{superAdminContact.name || 'Help Desk'}</p>
+                    </div>
+                  </div>
+
+                  <a href={`mailto:${superAdminContact.email}`} className="flex items-center gap-4 group/item">
+                    <div className="w-12 h-12 rounded-2xl bg-white/10 group-hover/item:bg-white/20 flex items-center justify-center shrink-0 transition-all">
+                      <Mail size={20} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold opacity-60 uppercase tracking-wider">Email Address</p>
+                      <p className="font-bold text-sm break-all">{superAdminContact.email}</p>
+                    </div>
+                  </a>
+
+                  {superAdminContact.phone && (
+                    <a href={`tel:${superAdminContact.phone}`} className="flex items-center gap-4 group/item">
+                      <div className="w-12 h-12 rounded-2xl bg-white/10 group-hover/item:bg-white/20 flex items-center justify-center shrink-0 transition-all">
+                        <Phone size={20} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold opacity-60 uppercase tracking-wider">Support Phone</p>
+                        <p className="font-bold text-sm">{superAdminContact.phone}</p>
+                      </div>
+                    </a>
+                  )}
+
+                  <div className="pt-4 border-t border-white/10">
+                    <p className="text-[10px] font-bold opacity-50 text-center">Contact for store approvals or technical assistance.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
       {/* Admin Profile Modal */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[32px] w-full max-w-lg shadow-2xl relative overflow-hidden">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="bg-white rounded-[32px] w-full max-w-lg max-h-[90vh] shadow-2xl relative overflow-hidden flex flex-col">
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <h3 className="text-xl font-bold text-slate-900 flex items-center">
                 <UserCog className="mr-3 text-indigo-500" size={24} />
                 Profile Settings
@@ -475,7 +529,7 @@ export default function Dashboard() {
               <button onClick={() => setIsProfileModalOpen(false)} className="text-slate-400 hover:text-slate-900"><X /></button>
             </div>
             
-            <form onSubmit={handleProfileSubmit} className="p-8 space-y-6">
+            <form onSubmit={handleProfileSubmit} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
               {userProfile?.pendingProfileChanges && Object.keys(userProfile.pendingProfileChanges).length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
                   <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
@@ -487,10 +541,40 @@ export default function Dashboard() {
               )}
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">Display Name</label>
-                  <input type="text" value={profileFormData.name} onChange={e => setProfileFormData({...profileFormData, name: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="Your Name" />
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">Display Name</label>
+                    <input 
+                      type="text" 
+                      value={profileFormData.name} 
+                      onChange={e => setProfileFormData({...profileFormData, name: e.target.value})} 
+                      disabled={isSuperAdmin}
+                      className={`w-full px-4 py-3 border rounded-2xl outline-none transition-all font-medium text-sm ${isSuperAdmin ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-50 border-slate-100 focus:ring-2 focus:ring-indigo-500'}`} 
+                      placeholder="Your Name" 
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">Role Type</label>
+                    <input 
+                      type="text" 
+                      value={isSuperAdmin ? "Super Administrator" : "Store Administrator"} 
+                      disabled 
+                      className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-2xl text-indigo-600 font-bold text-sm cursor-not-allowed" 
+                    />
+                  </div>
                 </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">Email Address</label>
+                  <input 
+                    type="email" 
+                    value={profileFormData.email} 
+                    onChange={e => setProfileFormData({...profileFormData, email: e.target.value})} 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" 
+                    placeholder="email@example.com" 
+                  />
+                </div>
+
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">Phone Number</label>
                   <div className="relative flex">
@@ -522,14 +606,21 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">Business Name</label>
-                  <input type="text" value={profileFormData.businessName} onChange={e => setProfileFormData({...profileFormData, businessName: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="Business Name" />
+                  <input 
+                    type="text" 
+                    value={profileFormData.businessName} 
+                    onChange={e => setProfileFormData({...profileFormData, businessName: e.target.value})} 
+                    disabled={isSuperAdmin}
+                    className={`w-full px-4 py-3 border rounded-2xl outline-none transition-all font-medium text-sm ${isSuperAdmin ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-50 border-slate-100 focus:ring-2 focus:ring-indigo-500'}`} 
+                    placeholder="Business Name" 
+                  />
                 </div>
               </div>
               
               <div className="flex space-x-3 pt-2">
                 <button type="button" onClick={() => setIsProfileModalOpen(false)} className="flex-[1] px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all">Cancel</button>
                 <button type="submit" disabled={isSavingProfile} className="flex-[2] px-4 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-70 flex items-center justify-center gap-2">
-                  {isSavingProfile ? <Loader2 className="animate-spin" size={18} /> : 'Submit Changes for Approval'}
+                  {isSavingProfile ? <Loader2 className="animate-spin" size={18} /> : (isSuperAdmin ? 'Apply Profile Updates' : 'Submit Changes for Approval')}
                 </button>
               </div>
             </form>

@@ -41,14 +41,19 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const allowedFields = ['name', 'phone', 'panNumber', 'businessName', 'nationalIdPhoto'];
+    const allowedFields = ['name', 'phone', 'panNumber', 'businessName', 'nationalIdPhoto', 'email'];
     const changesToStash: any = {};
+    const directUpdates: any = {};
     let hasChanges = false;
 
-    // Compare and only save actual changes
+    // Compare and identify actual changes
     for (const field of allowedFields) {
       if (data[field] !== undefined && data[field] !== user[field]) {
-         changesToStash[field] = data[field];
+         if (user.role === 'SUPER_ADMIN') {
+           directUpdates[field] = data[field];
+         } else {
+           changesToStash[field] = data[field];
+         }
          hasChanges = true;
       }
     }
@@ -57,15 +62,24 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ message: "No data changed." }, { status: 200 });
     }
 
-    const currentPending = user.pendingProfileChanges || {};
-    user.pendingProfileChanges = { ...currentPending, ...changesToStash };
-    
-    await user.save();
-
-    return NextResponse.json({ 
-      message: "Profile changes submitted successfully. They will be applied once approved by a Super Administrator.",
-      pendingChanges: user.pendingProfileChanges
-    });
+    if (user.role === 'SUPER_ADMIN') {
+      // Apply changes directly for Super-Admin
+      Object.assign(user, directUpdates);
+      await user.save();
+      return NextResponse.json({ 
+        message: "Profile updated successfully.",
+        user: { name: user.name, email: user.email, phone: user.phone, panNumber: user.panNumber }
+      });
+    } else {
+      // Stash changes for approval for regular Admins
+      const currentPending = user.pendingProfileChanges || {};
+      user.pendingProfileChanges = { ...currentPending, ...changesToStash };
+      await user.save();
+      return NextResponse.json({ 
+        message: "Profile changes submitted successfully. They will be applied once approved by a Super Administrator.",
+        pendingChanges: user.pendingProfileChanges
+      });
+    }
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
