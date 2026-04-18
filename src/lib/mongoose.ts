@@ -53,11 +53,20 @@ export async function dbConnect() {
     };
 
     cached.promise = (async () => {
+      const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL_URL;
+      const isProduction = process.env.NODE_ENV === 'production';
+
+      // In production, MONGODB_URI MUST be set - fail fast with a clear error
+      if ((isVercel || isProduction) && !process.env.MONGODB_URI) {
+        throw new Error(
+          "MONGODB_URI environment variable is not set. " +
+          "Please add it to your Vercel Project Settings > Environment Variables and redeploy."
+        );
+      }
+
       let uri = process.env.MONGODB_URI || "mongodb://localhost:27017/merobusiness";
       
       const isLocal = uri.includes("localhost") || uri.includes("127.0.0.1") || uri.includes("::1");
-      const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL_URL;
-      const isProduction = process.env.NODE_ENV === 'production';
 
       if (isLocal && !isVercel && !isProduction) {
         if (!cached.mongod) {
@@ -70,13 +79,14 @@ export async function dbConnect() {
 
       const conn = await mongoose.connect(uri, opts);
       
-      // Auto-seed in dev if using memory DB or if explicitly needed
+      // Auto-seed in dev only (in-memory)
       if (!isProduction) {
         await autoSeed();
       }
 
       return conn;
     })();
+
   }
   
   try {
