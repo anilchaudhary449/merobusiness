@@ -276,24 +276,6 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
           </span>
         </div>
         <div className="hidden md:flex space-x-6 text-sm font-medium">
-          <a href="#hero" className="hover:text-brand-accent transition-colors" style={{ color: 'inherit' }}>Home</a>
-          <a href="#products" className="hover:text-brand-accent transition-colors" style={{ color: 'inherit' }}>Products</a>
-          <a href="#about" className="hover:text-brand-accent transition-colors" style={{ color: 'inherit' }}>About</a>
-        </div>
-        <div className="flex items-center space-x-3">
-          {site.directPhone && (
-            <a 
-              href={`tel:${site.directPhone}`}
-              className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-gray-50 rounded-full text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors"
-            >
-              <PhoneCall size={14} className="text-brand-accent" />
-              <span>{site.directPhone}</span>
-            </a>
-          )}
-          <a 
-            href={whatsappLink}
-            target="_blank" rel="noreferrer"
-            className="flex items-center space-x-2 px-5 py-2.5 bg-brand-accent rounded-full text-xs font-bold text-white shadow-lg shadow-brand-accent/20 hover:scale-105 transition-transform"
           >
             <MessageCircle size={14} />
             <span className="hidden sm:inline">Order Now</span>
