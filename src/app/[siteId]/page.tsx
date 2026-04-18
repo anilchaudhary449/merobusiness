@@ -36,6 +36,21 @@ export default async function PublicWebsite({ params }: { params: Promise<{ site
     notFound();
   }
 
+  let ownerInfo = null;
+  try {
+    await dbConnect();
+    const owner = await User.findById(siteRaw.userId).lean();
+    if (owner) {
+      ownerInfo = {
+        phone: owner.phone || '',
+        email: owner.email || '',
+        panNumber: owner.panNumber || ''
+      };
+    }
+  } catch (e) {
+    console.error('Failed to fetch owner info:', e);
+  }
+
   // Convert to plain object to avoid serialization errors with ObjectId and Dates
   const site = JSON.parse(JSON.stringify(siteRaw));
 
@@ -65,7 +80,7 @@ export default async function PublicWebsite({ params }: { params: Promise<{ site
 
   return (
     <main className="h-screen w-full">
-      <PreviewSite site={site} />
+      <PreviewSite site={site} ownerInfo={ownerInfo} />
     </main>
   );
 }
