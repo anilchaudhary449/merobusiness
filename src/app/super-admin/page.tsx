@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { 
@@ -135,6 +135,13 @@ export default function SuperAdminDashboard() {
           <button onClick={() => router.push('/dashboard')} className="flex items-center text-sm font-semibold text-slate-700 hover:text-indigo-600 px-3 py-2 rounded-lg transition-colors">
             <LayoutDashboard size={18} className="mr-2" />
             Live View
+          </button>
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="p-2.5 bg-white border border-red-100 text-red-500 rounded-2xl hover:bg-red-50 transition-all"
+            title="Sign Out"
+          >
+            <LogOut size={20} />
           </button>
         </div>
       </nav>
