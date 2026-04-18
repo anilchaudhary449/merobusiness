@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import dbConnect from '@/lib/mongoose';
+import { dbConnect } from '@/lib/mongoose';
 import SupportTicket from '@/models/SupportTicket';
 import User from '@/models/User';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';

@@ -9,7 +9,7 @@ import {
   Check, X, Loader2, LogOut, LayoutDashboard,
   Lock, Mail, User as UserIcon, Palette,
   ClipboardList, CheckCircle2, XCircle, Eye, Phone, FileText, Building2, Clock,
-  Info, AtSign, Calendar, BadgeCheck, UserCog, ArrowRight
+  Info, AtSign, Calendar, BadgeCheck, UserCog, ArrowRight, MessageSquare, Send, History
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -23,14 +23,18 @@ export default function SuperAdminDashboard() {
   const { data: websites } = useSWR('/api/websites', fetcher);
   const { data: pendingRegistrations, mutate: mutatePending } = useSWR('/api/admin/registrations', fetcher);
   const { data: profileApprovals, mutate: mutateProfileApprovals } = useSWR('/api/admin/profile-approvals', fetcher);
+  const { data: tickets, mutate: mutateTickets } = useSWR('/api/support', fetcher, { refreshInterval: 3000 });
   
-  const [activeTab, setActiveTab] = useState<'admins' | 'pending' | 'approvals'>('admins');
+  const [activeTab, setActiveTab] = useState<'admins' | 'pending' | 'approvals' | 'support'>('admins');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [idPhotoModal, setIdPhotoModal] = useState<string | null>(null);
   const [viewingAdmin, setViewingAdmin] = useState<any>(null);
   const [rejectModal, setRejectModal] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
+  const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
+  const [chatMessage, setChatMessage] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
   const [formData, setFormData] = useState({
@@ -183,6 +187,42 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatMessage.trim() || !activeTicketId || isSendingMessage) return;
+
+    setIsSendingMessage(true);
+    try {
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: chatMessage.trim(), ticketId: activeTicketId }),
+      });
+      if (!res.ok) throw new Error('Failed to send message');
+      setChatMessage('');
+      mutateTickets();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const handleResolveTicket = async (ticketId: string) => {
+    try {
+      const res = await fetch(`/api/support/${ticketId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'RESOLVED' }),
+      });
+      if (!res.ok) throw new Error('Failed to resolve ticket');
+      toast.success('Ticket marked as resolved');
+      mutateTickets();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const pendingCount = Array.isArray(pendingRegistrations) ? pendingRegistrations.length : 0;
   const approvalsCount = Array.isArray(profileApprovals) ? profileApprovals.length : 0;
 
@@ -252,6 +292,18 @@ export default function SuperAdminDashboard() {
             {approvalsCount > 0 && (
               <span className={`px-2 py-0.5 rounded-full text-xs font-black ${activeTab === 'approvals' ? 'bg-white text-indigo-600' : 'bg-amber-500 text-white'}`}>
                 {approvalsCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('support')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'support' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+          >
+            <MessageSquare size={16} />
+            Support Center
+            {tickets?.filter((t: any) => t.status === 'OPEN').length > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-black ${activeTab === 'support' ? 'bg-white text-indigo-600' : 'bg-red-500 text-white'}`}>
+                {tickets.filter((t: any) => t.status === 'OPEN').length}
               </span>
             )}
           </button>
@@ -488,6 +540,215 @@ export default function SuperAdminDashboard() {
                 ))}
               </div>
             )}
+          </>
+        )}
+
+        {/* ─── Tab: Support Center ─── */}
+        {activeTab === 'support' && (
+          <>
+            <header className="mb-8">
+              <h2 className="text-3xl font-bold text-slate-900">Support Center</h2>
+              <p className="text-slate-500 mt-1 text-sm font-medium">Communicate with store admins and provide technical guidance.</p>
+            </header>
+
+            <div className="grid grid-cols-12 gap-8 h-[700px]">
+              {/* Ticket List */}
+              <div className="col-span-4 bg-white border border-slate-200 rounded-[32px] overflow-hidden flex flex-col shadow-sm">
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <ClipboardList size={18} className="text-indigo-600" />
+                    Active Tickets
+                  </h3>
+                </div>
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
+                  {!tickets || tickets.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
+                      <MessageSquare size={32} className="opacity-20 mb-3" />
+                      <p className="text-sm font-bold uppercase tracking-widest text-slate-400">No Tickets</p>
+                    </div>
+                  ) : (
+                    tickets.map((ticket: any) => (
+                      <button
+                        key={ticket._id}
+                        onClick={() => setActiveTicketId(ticket._id)}
+                        className={`w-full p-4 rounded-2xl text-left transition-all ${activeTicketId === ticket._id ? 'bg-indigo-50 border-indigo-100 shadow-inner' : 'hover:bg-slate-50 border-transparent'} border text-sm group`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-slate-900 truncate pr-2">{ticket.adminId?.businessName || ticket.adminId?.name || 'Admin'}</span>
+                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${ticket.status === 'OPEN' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
+                            {ticket.status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 line-clamp-1 mb-2 font-medium">
+                          {ticket.messages?.[ticket.messages.length - 1]?.text || 'Started a conversation'}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                             {new Date(ticket.lastMessageAt || ticket.createdAt).toLocaleDateString()}
+                          </span>
+                          {ticket.status === 'OPEN' && (
+                             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Chat Window */}
+              <div className="col-span-5 bg-white border border-slate-200 rounded-[32px] overflow-hidden flex flex-col shadow-sm relative">
+                {!activeTicketId ? (
+                   <div className="flex-1 flex flex-col items-center justify-center text-center p-12 space-y-4">
+                      <div className="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400">
+                         <MessageSquare size={40} />
+                      </div>
+                      <div>
+                         <h4 className="text-lg font-bold text-slate-900">Expert Support</h4>
+                         <p className="text-sm text-slate-500 max-w-[240px] mx-auto mt-1">Select an active ticket from the left to start communicating with the admin.</p>
+                      </div>
+                   </div>
+                ) : (() => {
+                  const currentTicket = tickets?.find((t: any) => t._id === activeTicketId);
+                  return (
+                    <>
+                      <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                         <div>
+                            <h3 className="font-bold text-slate-900">{currentTicket?.adminId?.businessName || 'Admin Chat'}</h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Live Session</p>
+                         </div>
+                         <button 
+                           onClick={() => handleResolveTicket(activeTicketId!)}
+                           className="px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider border border-emerald-100 transition-all flex items-center gap-1.5"
+                         >
+                           <CheckCircle2 size={12} /> Mark Resolved
+                         </button>
+                      </div>
+                      
+                      <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                         {currentTicket?.messages?.map((msg: any, idx: number) => {
+                            const isMe = msg.senderId === (session?.user as any).id;
+                            return (
+                              <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] rounded-[20px] p-3 text-sm shadow-sm ${
+                                  isMe 
+                                    ? 'bg-indigo-600 text-white rounded-tr-none' 
+                                    : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none'
+                                }`}>
+                                  <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                                  <p className={`text-[9px] mt-1.5 font-bold uppercase tracking-wider opacity-60 ${isMe ? 'text-indigo-100' : 'text-slate-400'}`}>
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                         })}
+                      </div>
+
+                      <form onSubmit={handleSendMessage} className="p-4 bg-slate-50 border-t border-slate-100">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={chatMessage}
+                            onChange={(e) => setChatMessage(e.target.value)}
+                            placeholder="Type your response..."
+                            className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm font-medium"
+                          />
+                          <button
+                            disabled={isSendingMessage || !chatMessage.trim()}
+                            type="submit"
+                            className="absolute right-1.5 top-1.5 p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50"
+                          >
+                            {isSendingMessage ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                          </button>
+                        </div>
+                      </form>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* Admin Context Panel */}
+              <div className="col-span-3 bg-slate-900 rounded-[32px] overflow-hidden flex flex-col shadow-xl text-white">
+                {!activeTicketId ? (
+                  <div className="p-8 text-center h-full flex flex-col items-center justify-center opacity-40">
+                     <Shield size={40} className="mb-4" />
+                     <p className="text-xs font-bold uppercase tracking-widest text-slate-400">System Context Locked</p>
+                  </div>
+                ) : (() => {
+                  const currentTicket = tickets?.find((t: any) => t._id === activeTicketId);
+                  const admin = currentTicket?.adminId;
+                  if (!admin) return null;
+                  return (
+                    <div className="p-6 h-full flex flex-col">
+                      <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2 text-indigo-400">
+                        <AtSign size={16} /> Admin Context
+                      </h3>
+                      
+                      <div className="space-y-6">
+                         <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Display Name</p>
+                            <p className="font-bold text-sm">{admin.name}</p>
+                         </div>
+                         
+                         <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Business Presence</p>
+                            <p className="font-bold text-sm">{admin.businessName}</p>
+                         </div>
+
+                         <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                               <Mail size={16} className="text-indigo-400" />
+                               <div>
+                                  <p className="text-[8px] font-bold text-slate-500 uppercase">Email</p>
+                                  <p className="text-[11px] font-bold truncate">{admin.email}</p>
+                               </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                               <Phone size={16} className="text-indigo-400" />
+                               <div>
+                                  <p className="text-[8px] font-bold text-slate-500 uppercase">Phone</p>
+                                  <p className="text-[11px] font-bold">{admin.phone || 'N/A'}</p>
+                               </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                               <FileText size={16} className="text-indigo-400" />
+                               <div>
+                                  <p className="text-[8px] font-bold text-slate-500 uppercase">PAN Number</p>
+                                  <p className="text-[11px] font-bold">{admin.panNumber || 'N/A'}</p>
+                               </div>
+                            </div>
+                         </div>
+
+                         <div className="pt-6 mt-6 border-t border-white/10">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center justify-between">
+                               Active Assets
+                               <span className="bg-indigo-600 text-[8px] px-1.5 py-0.5 rounded-full">{admin.assignedSiteIds?.length || 0} Stores</span>
+                            </p>
+                            <div className="space-y-2 max-h-[120px] overflow-y-auto custom-scrollbar">
+                               {websites?.filter((s: any) => admin.assignedSiteIds?.includes(s._id)).map((site: any) => (
+                                  <div key={site._id} className="text-[10px] font-bold p-2 bg-white/5 rounded-xl flex items-center gap-2">
+                                     <Globe size={10} className="text-emerald-400" />
+                                     {site.businessName}
+                                  </div>
+                               ))}
+                            </div>
+                         </div>
+                      </div>
+
+                      <div className="mt-auto pt-4 text-center">
+                         <button 
+                           onClick={() => setViewingAdmin(admin)}
+                           className="w-full py-2.5 bg-white/10 hover:bg-white text-[10px] font-black uppercase tracking-widest text-white hover:text-slate-900 rounded-xl border border-white/20 transition-all"
+                         >
+                           View Full Profile
+                         </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
           </>
         )}
       </main>

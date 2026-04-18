@@ -11,7 +11,7 @@ import { createWebsiteSchema, CreateWebsiteInput } from '@/lib/validations/websi
 import { 
   PlusCircle, Link as LinkIcon, Settings, Globe, AlertCircle, 
   Trash2, ToggleLeft, ToggleRight, Palette, LogOut, ShieldCheck,
-  LayoutDashboard, Loader2, UserCog, X, Mail, Phone, User as UserIcon
+  LayoutDashboard, Loader2, UserCog, X, Mail, Phone, User as UserIcon, Send, MessageSquare, CheckCircle2
 } from 'lucide-react';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { toast } from 'sonner';
@@ -29,6 +29,13 @@ export default function Dashboard() {
   const { data: websites, error, mutate, isLoading } = useSWR('/api/websites', fetcher);
   const { data: userProfile, mutate: mutateUserProfile } = useSWR('/api/admin/profile', fetcher);
   const { data: superAdminContact } = useSWR((status === 'authenticated' && (session?.user as any).role !== 'SUPER_ADMIN') ? '/api/super-admin/contact' : null, fetcher);
+  
+  // Support Chat SWR
+  const { data: supportTicket, mutate: mutateSupport } = useSWR(
+    status === 'authenticated' && (session?.user as any).role !== 'SUPER_ADMIN' ? '/api/support' : null, 
+    fetcher,
+    { refreshInterval: 3000 }
+  );
 
   
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -50,6 +57,8 @@ export default function Dashboard() {
     id: '',
     name: ''
   });
+  const [chatMessage, setChatMessage] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const isSuperAdmin = (session?.user as any)?.role === 'SUPER_ADMIN';
   const canChangeTheme = (session?.user as any)?.permissions?.canChangeTheme || isSuperAdmin;
@@ -231,6 +240,27 @@ export default function Dashboard() {
       toast.error(err.message);
     } finally {
       setIsSavingProfile(false);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatMessage.trim() || isSendingMessage) return;
+
+    setIsSendingMessage(true);
+    try {
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: chatMessage.trim() }),
+      });
+      if (!res.ok) throw new Error('Failed to send message');
+      setChatMessage('');
+      mutateSupport();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsSendingMessage(false);
     }
   };
 
@@ -464,53 +494,87 @@ export default function Dashboard() {
             )}
           </div>
 
-          {!isSuperAdmin && superAdminContact && (
+          {!isSuperAdmin && (
             <div className="md:col-span-1">
-              <div className="rounded-[32px] border border-white bg-indigo-600 p-6 shadow-xl text-white relative overflow-hidden group">
-                <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-700" />
-                
-                <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <ShieldCheck size={16} />
-                  Platform Support
-                </h3>
-                
-                <div className="space-y-5">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
-                      <UserIcon size={20} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold opacity-60 uppercase tracking-wider">Administrator</p>
-                      <p className="font-bold text-sm">{superAdminContact.name || 'Help Desk'}</p>
-                    </div>
-                  </div>
-
-                  <a href={`mailto:${superAdminContact.email}`} className="flex items-center gap-4 group/item">
-                    <div className="w-12 h-12 rounded-2xl bg-white/10 group-hover/item:bg-white/20 flex items-center justify-center shrink-0 transition-all">
-                      <Mail size={20} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold opacity-60 uppercase tracking-wider">Email Address</p>
-                      <p className="font-bold text-sm break-all">{superAdminContact.email}</p>
-                    </div>
-                  </a>
-
-                  {superAdminContact.phone && (
-                    <a href={`tel:${superAdminContact.phone}`} className="flex items-center gap-4 group/item">
-                      <div className="w-12 h-12 rounded-2xl bg-white/10 group-hover/item:bg-white/20 flex items-center justify-center shrink-0 transition-all">
-                        <Phone size={20} />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold opacity-60 uppercase tracking-wider">Support Phone</p>
-                        <p className="font-bold text-sm">{superAdminContact.phone}</p>
-                      </div>
-                    </a>
+              <div className="rounded-[32px] border border-white bg-white/70 p-6 shadow-xl backdrop-blur-xl flex flex-col h-[600px]">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-indigo-600">
+                    <MessageSquare size={16} />
+                    Live Support
+                  </h3>
+                  {supportTicket?.status === 'RESOLVED' && (
+                    <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider border border-emerald-100 flex items-center gap-1">
+                      <CheckCircle2 size={10} /> Resolved
+                    </span>
                   )}
-
-                  <div className="pt-4 border-t border-white/10">
-                    <p className="text-[10px] font-bold opacity-50 text-center">Contact for store approvals or technical assistance.</p>
-                  </div>
                 </div>
+                
+                {/* Messages Container */}
+                <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar mb-4">
+                  {!supportTicket || supportTicket.messages.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-400">
+                        <MessageSquare size={24} />
+                      </div>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Start a conversation</p>
+                      <p className="text-[11px] text-slate-500">Need help? Send a message to our Super-Admins and we'll reply shortly.</p>
+                    </div>
+                  ) : (
+                    supportTicket.messages.map((msg: any, idx: number) => {
+                      const isMe = msg.senderId === (session?.user as any).id;
+                      return (
+                        <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[85%] rounded-[20px] p-3 text-sm shadow-sm ${
+                            isMe 
+                              ? 'bg-indigo-600 text-white rounded-tr-none' 
+                              : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none'
+                          }`}>
+                            <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                            <p className={`text-[9px] mt-1.5 font-bold uppercase tracking-wider opacity-60 ${isMe ? 'text-indigo-100' : 'text-slate-400'}`}>
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Input Area */}
+                <form onSubmit={handleSendMessage} className="relative mt-auto">
+                  <input
+                    type="text"
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm font-medium"
+                  />
+                  <button
+                    disabled={isSendingMessage || !chatMessage.trim()}
+                    type="submit"
+                    className="absolute right-1.5 top-1.5 p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:bg-slate-300"
+                  >
+                    {isSendingMessage ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                  </button>
+                </form>
+
+                {/* Super Admin Info if available */}
+                {superAdminContact && (
+                  <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Support Online</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <a href={`tel:${superAdminContact.phone}`} className="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors">
+                        <Phone size={14} />
+                      </a>
+                      <a href={`mailto:${superAdminContact.email}`} className="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors">
+                        <Mail size={14} />
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
