@@ -23,12 +23,14 @@ export default function SuperAdminDashboard() {
   const router = useRouter();
   
   const { data: admins, mutate: mutateAdmins } = useSWR('/api/admin/users', fetcher);
+  const { data: customers, mutate: mutateCustomers } = useSWR('/api/admin/customers', fetcher);
+  const { data: credentialRequests, mutate: mutateCredentialRequests } = useSWR('/api/admin/credential-requests', fetcher);
   const { data: websites } = useSWR('/api/websites', fetcher);
   const { data: pendingRegistrations, mutate: mutatePending } = useSWR('/api/admin/registrations', fetcher);
   const { data: profileApprovals, mutate: mutateProfileApprovals } = useSWR('/api/admin/profile-approvals', fetcher);
   const { data: tickets, mutate: mutateTickets } = useSWR('/api/support', fetcher, { refreshInterval: 3000 });
   
-  const [activeTab, setActiveTab] = useState<'admins' | 'pending' | 'approvals' | 'support'>('admins');
+  const [activeTab, setActiveTab] = useState<'admins' | 'customers' | 'resets' | 'pending' | 'approvals' | 'support'>('admins');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -260,6 +262,21 @@ export default function SuperAdminDashboard() {
   const pendingCount = Array.isArray(pendingRegistrations) ? pendingRegistrations.length : 0;
   const approvalsCount = Array.isArray(profileApprovals) ? profileApprovals.length : 0;
 
+  const handleResolveCredentialRequest = async (id: string, action: 'resolve' | 'reject') => {
+    try {
+      const res = await fetch(`/api/admin/credential-requests/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) throw new Error('Action failed');
+      toast.success(action === 'resolve' ? 'Credentials resent successfully' : 'Request rejected');
+      mutateCredentialRequests();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">
@@ -304,6 +321,25 @@ export default function SuperAdminDashboard() {
           >
             <Users size={16} />
             Admin Accounts
+          </button>
+          <button
+            onClick={() => setActiveTab('customers')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'customers' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+          >
+            <UserIcon size={16} />
+            Customers
+          </button>
+          <button
+            onClick={() => setActiveTab('resets')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'resets' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+          >
+            <Lock size={16} />
+            Password Resets
+            {credentialRequests?.filter((r: any) => r.status === 'PENDING').length > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-black ${activeTab === 'resets' ? 'bg-white text-indigo-600' : 'bg-rose-500 text-white'}`}>
+                {credentialRequests.filter((r: any) => r.status === 'PENDING').length}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab('pending')}
@@ -402,6 +438,142 @@ export default function SuperAdminDashboard() {
                 <div className="text-center py-20 text-slate-400">
                   <Users size={40} className="mx-auto mb-3 opacity-30" />
                   <p className="font-semibold">No admin accounts yet.</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ─── Tab: Customer Management ─── */}
+        {activeTab === 'customers' && (
+          <>
+            <header className="mb-8">
+              <h2 className="text-3xl font-bold text-slate-900">Customer Base</h2>
+              <p className="text-slate-500 mt-1 text-sm font-medium">Manage store customers, view demographics, and oversee account status.</p>
+            </header>
+
+            <div className="grid grid-cols-1 gap-6">
+              {Array.isArray(customers) && customers.map((customer: any) => (
+                <div key={customer._id} className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+                  <div className="flex items-center space-x-6">
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                      <UserIcon size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-lg">
+                        {customer.firstName} {customer.middleName ? customer.middleName + ' ' : ''}{customer.lastName}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 mt-1 font-medium">
+                        <div className="flex items-center gap-2">
+                          <Mail size={14} className="text-slate-400" />
+                          <span className="font-mono">{customer.email}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar size={14} className="text-slate-400" />
+                          <span>Born: {customer.dob ? new Date(customer.dob).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-3 text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 w-fit px-2 py-1 rounded-md">
+                        <BadgeCheck size={12} />
+                        Store Access Active
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button onClick={() => handleDelete(customer._id)} className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete Customer">
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {Array.isArray(customers) && customers.length === 0 && (
+                <div className="text-center py-20 text-slate-400">
+                  <UserIcon size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="font-semibold">No customers registered yet.</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ─── Tab: Password Resets ─── */}
+        {activeTab === 'resets' && (
+          <>
+            <header className="mb-8">
+              <h2 className="text-3xl font-bold text-slate-900">Credential Requests</h2>
+              <p className="text-slate-500 mt-1 text-sm font-medium">Verify customer identity and securely resend account credentials.</p>
+            </header>
+
+            <div className="grid grid-cols-1 gap-6">
+              {Array.isArray(credentialRequests) && credentialRequests.map((req: any) => (
+                <div key={req._id} className={`bg-white border rounded-[28px] p-6 shadow-sm transition-all ${req.status === 'PENDING' ? 'border-rose-200 bg-rose-50/10' : 'border-slate-200'}`}>
+                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                    <div className="flex items-start gap-5">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${req.status === 'PENDING' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-400'}`}>
+                        <Lock size={24} />
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="font-bold text-slate-900 text-lg flex items-center gap-3">
+                            {req.userId?.firstName ? `${req.userId.firstName} ${req.userId.lastName}` : (req.userId?.name || req.email)}
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${req.status === 'PENDING' ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                              {req.status}
+                            </span>
+                          </h3>
+                          <p className="text-sm text-slate-500 mt-0.5 font-mono">{req.email}</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="p-3 bg-white border border-slate-100 rounded-xl">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Registered DOB</p>
+                            <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                              <Calendar size={14} className="text-indigo-500" />
+                              {req.userId?.dob ? new Date(req.userId.dob).toLocaleDateString() : 'Account Missing'}
+                            </p>
+                          </div>
+                          <div className="p-3 bg-white border border-slate-100 rounded-xl">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Registered Phone</p>
+                            <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                              <Phone size={14} className="text-indigo-500" />
+                              {req.userId?.phone || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {req.status === 'PENDING' && (
+                          <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold border border-amber-100">
+                            <Info size={14} />
+                            Verify the DOB and Email above before resending credentials.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {req.status === 'PENDING' && (
+                      <div className="flex items-center gap-3 lg:flex-col lg:items-end shrink-0">
+                        <button
+                          onClick={() => handleResolveCredentialRequest(req._id, 'resolve')}
+                          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-indigo-600/20 transition-all"
+                        >
+                          <Send size={16} />
+                          Resend Credentials
+                        </button>
+                        <button
+                          onClick={() => handleResolveCredentialRequest(req._id, 'reject')}
+                          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-white hover:bg-rose-50 text-rose-600 font-bold text-sm rounded-2xl border border-rose-200 transition-all"
+                        >
+                          <XCircle size={16} />
+                          Reject Request
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {Array.isArray(credentialRequests) && credentialRequests.length === 0 && (
+                <div className="text-center py-20 text-slate-400 bg-white rounded-[32px] border border-slate-100">
+                  <Lock size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="font-semibold">No pending reset requests.</p>
                 </div>
               )}
             </div>
