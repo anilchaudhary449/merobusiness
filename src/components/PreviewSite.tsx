@@ -5,7 +5,8 @@ import {
   Phone, MessageCircle, MapPin, Search, ExternalLink, 
   Mail, PhoneCall, Globe, Music, Heart, Star, HelpCircle, 
   User, PlusCircle, LogIn, ChevronRight, Send, Loader2,
-  Lock, CheckCircle2, XCircle, ArrowRight
+  Lock, CheckCircle2, XCircle, ArrowRight, LogOut,
+  BadgeCheck, Clock, X, AtSign, Calendar
 } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -104,6 +105,74 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
       toast.success(isAdded ? 'Removed from wishlist' : 'Added to wishlist');
     } catch (err) {
       toast.error('Failed to update wishlist');
+    }
+  };
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAuthSubmitting(true);
+    try {
+      if (authModal === 'register') {
+        const res = await fetch('/api/auth/customer-register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(authForm)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        toast.success('Registration successful! Please log in.');
+        setAuthModal('login');
+      } else if (authModal === 'login') {
+        const res = await fetch('/api/auth/callback/credentials', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: authForm.email, password: authForm.password, redirect: false })
+        });
+        window.location.reload();
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAuthSubmitting(true);
+    try {
+      const res = await fetch('/api/auth/customer-forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: authForm.email })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(data.message);
+      setAuthModal('login');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session) { setAuthModal('login'); return; }
+    try {
+       const res = await fetch(`/api/store/${site.slug || site._id}/products/${activeProduct.id}/reviews`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rating: reviewRating, comment: reviewComment })
+       });
+       const data = await res.json();
+       if (!res.ok) throw new Error(data.error || 'Failed to post review');
+       toast.success('Review posted successfully!');
+       setReviewComment('');
+       mutateReviews();
+    } catch (err: any) {
+       toast.error(err.message);
     }
   };
 
@@ -314,8 +383,6 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
         .btn-order-hover:hover .icon-accent {
           color: white !important;
         }
-        color: var(--brand-heading);
-        }
 
         /* Modal Backdrop */
         .modal-backdrop {
@@ -323,81 +390,6 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
           backdrop-filter: blur(8px);
         }
       `}} />
-
-      {/* Auth Handlers */}
-      {(() => {
-        const handleAuthSubmit = async (e: React.FormEvent) => {
-          e.preventDefault();
-          setIsAuthSubmitting(true);
-          try {
-            if (authModal === 'register') {
-              const res = await fetch('/api/auth/customer-register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(authForm)
-              });
-              const data = await res.json();
-              if (!res.ok) throw new Error(data.error);
-              toast.success('Registration successful! Please log in.');
-              setAuthModal('login');
-            } else if (authModal === 'login') {
-              // Sign in logic via NextAuth
-              const res = await fetch('/api/auth/callback/credentials', { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...authForm, redirect: false })
-              });
-              // Note: Since this is a preview inside a component, 
-              // we reload to get the new session
-              window.location.reload();
-            }
-          } catch (err: any) {
-            toast.error(err.message);
-          } finally {
-            setIsAuthSubmitting(false);
-          }
-        };
-
-        const handleForgotPassword = async (e: React.FormEvent) => {
-          e.preventDefault();
-          setIsAuthSubmitting(true);
-          try {
-            const res = await fetch('/api/auth/customer-forgot-password', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: authForm.email })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            toast.success(data.message);
-            setAuthModal('login');
-          } catch (err: any) {
-            toast.error(err.message);
-          } finally {
-            setIsAuthSubmitting(false);
-          }
-        };
-
-        const handleReviewSubmit = async (e: React.FormEvent) => {
-          e.preventDefault();
-          if (!session) { setAuthModal('login'); return; }
-          try {
-             const res = await fetch(`/api/store/${site.slug || site._id}/products/${activeProduct.id}/reviews`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rating: reviewRating, comment: reviewComment })
-             });
-             if (!res.ok) throw new Error('Failed to post review');
-             toast.success('Review posted successfully!');
-             setReviewComment('');
-             // mutateReviews(); // If I use SWR for reviews
-          } catch (err: any) {
-             toast.error(err.message);
-          }
-        };
-
-        return null;
-      })()}
 
       {/* Navigation */}
       <nav 
@@ -777,7 +769,6 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
           </a>
         )}
       </div>
-      </div>
 
       {/* ─── Product Detail Modal ─── */}
       {activeProduct && (
@@ -853,27 +844,7 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
 
                   {activeTab === 'reviews' && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-left-2 pb-6">
-                       <form onSubmit={(e) => {
-                          const handleReviewSubmit = async (e: React.FormEvent) => {
-                            e.preventDefault();
-                            if (!session) { setAuthModal('login'); return; }
-                            try {
-                               const res = await fetch(`/api/store/${site.slug || site._id}/products/${activeProduct.id}/reviews`, {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ rating: reviewRating, comment: reviewComment })
-                               });
-                               const data = await res.json();
-                               if (!res.ok) throw new Error(data.error);
-                               toast.success('Review posted successfully!');
-                               setReviewComment('');
-                               mutateReviews();
-                            } catch (err: any) {
-                               toast.error(err.message);
-                            }
-                          };
-                          handleReviewSubmit(e);
-                       }} className="p-4 bg-slate-900 rounded-[28px] text-white">
+                       <form onSubmit={handleReviewSubmit} className="p-4 bg-slate-900 rounded-[28px] text-white">
                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Leave a Review</p>
                           <div className="flex gap-2 mb-4">
                              {[1, 2, 3, 4, 5].map(star => (
@@ -978,45 +949,8 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
              </div>
 
              <form onSubmit={(e) => {
-                const handleAuthSubmit = async (e: React.FormEvent) => {
-                  e.preventDefault();
-                  setIsAuthSubmitting(true);
-                  try {
-                    if (authModal === 'register') {
-                      const res = await fetch('/api/auth/customer-register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(authForm)
-                      });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data.error);
-                      toast.success('Registration successful! Please log in.');
-                      setAuthModal('login');
-                    } else if (authModal === 'login') {
-                      const res = await fetch('/api/auth/callback/credentials', { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: authForm.email, password: authForm.password, redirect: false })
-                      });
-                      window.location.reload();
-                    } else {
-                       const res = await fetch('/api/auth/customer-forgot-password', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: authForm.email })
-                       });
-                       const data = await res.json();
-                       if (!res.ok) throw new Error(data.error);
-                       toast.success(data.message);
-                       setAuthModal('login');
-                    }
-                  } catch (err: any) {
-                    toast.error(err.message);
-                  } finally {
-                    setIsAuthSubmitting(false);
-                  }
-                };
-                handleAuthSubmit(e);
+                if (authModal === 'forgot') handleForgotPassword(e);
+                else handleAuthSubmit(e);
              }} className="space-y-4">
                 {authModal === 'register' && (
                   <div className="grid grid-cols-2 gap-4">
