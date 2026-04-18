@@ -11,7 +11,7 @@ import { createWebsiteSchema, CreateWebsiteInput } from '@/lib/validations/websi
 import { 
   PlusCircle, Link as LinkIcon, Settings, Globe, AlertCircle, 
   Trash2, ToggleLeft, ToggleRight, Palette, LogOut, ShieldCheck,
-  LayoutDashboard, Loader2, UserCog, X, Mail, Phone, User as UserIcon, Send, MessageSquare, CheckCircle2
+  LayoutDashboard, Loader2, UserCog, X, Mail, Phone, User as UserIcon, Send, MessageSquare, CheckCircle2, XCircle
 } from 'lucide-react';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { toast } from 'sonner';
@@ -43,6 +43,11 @@ export default function Dashboard() {
   
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [phoneStatus, setPhoneStatus] = useState<{ isValid: boolean; message: string; show: boolean }>({
+    isValid: false,
+    message: '',
+    show: false
+  });
   const [profileFormData, setProfileFormData] = useState({
     name: '',
     countryCode: '+977',
@@ -208,6 +213,26 @@ export default function Dashboard() {
     }
     setIsProfileModalOpen(true);
   };
+
+  // Real-time phone validation for profile
+  useEffect(() => {
+    const phoneDigits = profileFormData.phone.replace(/[^0-9]/g, '');
+    if (!phoneDigits) {
+      setPhoneStatus({ isValid: false, message: '', show: false });
+      return;
+    }
+
+    const selectedCountry = COUNTRIES.find(c => c.dial_code === profileFormData.countryCode);
+    if (selectedCountry) {
+      const fullNumber = `${profileFormData.countryCode}${phoneDigits}`;
+      const isValid = isValidPhoneNumber(fullNumber, selectedCountry.code as any);
+      setPhoneStatus({
+        isValid,
+        message: isValid ? `Perfect format for ${selectedCountry.name}` : `Invalid for ${selectedCountry.name}`,
+        show: true
+      });
+    }
+  }, [profileFormData.phone, profileFormData.countryCode]);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -729,6 +754,12 @@ export default function Dashboard() {
                       placeholder="98XXXXXXXX" 
                     />
                   </div>
+                  {phoneStatus.show && (
+                    <div className={`mt-2 ml-1 flex items-center gap-2 text-[10px] font-bold transition-all duration-300 animate-in fade-in slide-in-from-top-1 ${phoneStatus.isValid ? 'text-emerald-600' : 'text-rose-500'}`}>
+                      {phoneStatus.isValid ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                      <span className="tracking-widest uppercase">{phoneStatus.message}</span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">PAN Number</label>

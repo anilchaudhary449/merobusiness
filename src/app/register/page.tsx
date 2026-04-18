@@ -32,6 +32,11 @@ export default function RegisterPage() {
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
   const [usernameMessage, setUsernameMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phoneStatus, setPhoneStatus] = useState<{ isValid: boolean; message: string; show: boolean }>({
+    isValid: false,
+    message: '',
+    show: false
+  });
   const [submitted, setSubmitted] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
 
@@ -92,6 +97,33 @@ export default function RegisterPage() {
   };
 
   const strength = passwordStrength(form.password);
+
+  // Real-time phone validation
+  useEffect(() => {
+    const phoneDigits = form.phone.replace(/[^0-9]/g, '');
+    if (!phoneDigits) {
+      setPhoneStatus({ isValid: false, message: '', show: false });
+      return;
+    }
+
+    const selectedCountry = COUNTRIES.find(c => c.dial_code === form.countryCode);
+    if (selectedCountry) {
+      const fullNumber = `${form.countryCode}${phoneDigits}`;
+      const isValid = isValidPhoneNumber(fullNumber, selectedCountry.code as any);
+      setPhoneStatus({
+        isValid,
+        message: isValid ? `Perfectly formatted for ${selectedCountry.name}` : `Invalid format for ${selectedCountry.name}`,
+        show: true
+      });
+    } else {
+      const isValid = phoneDigits.length >= 7 && phoneDigits.length <= 15;
+      setPhoneStatus({
+        isValid,
+        message: isValid ? 'Possible format' : 'Must be 7-15 digits',
+        show: true
+      });
+    }
+  }, [form.phone, form.countryCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,6 +313,12 @@ export default function RegisterPage() {
                     placeholder="98XXXXXXXX"
                   />
                 </div>
+                {phoneStatus.show && (
+                  <div className={`mt-2 ml-1 flex items-center gap-2 text-[11px] font-bold transition-all duration-300 animate-in fade-in slide-in-from-top-1 ${phoneStatus.isValid ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {phoneStatus.isValid ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                    <span className="tracking-wide uppercase">{phoneStatus.message}</span>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">PAN Number</label>

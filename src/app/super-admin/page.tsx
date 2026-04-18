@@ -38,6 +38,11 @@ export default function SuperAdminDashboard() {
   const [chatMessage, setChatMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [phoneStatus, setPhoneStatus] = useState<{ isValid: boolean; message: string; show: boolean }>({
+    isValid: false,
+    message: '',
+    show: false
+  });
 
   const [formData, setFormData] = useState({
     username: '',
@@ -90,6 +95,26 @@ export default function SuperAdminDashboard() {
     }
     setIsModalOpen(true);
   };
+
+  // Real-time phone validation for admin provisioning
+  useEffect(() => {
+    const phoneDigits = formData.phone.replace(/[^0-9]/g, '');
+    if (!phoneDigits) {
+      setPhoneStatus({ isValid: false, message: '', show: false });
+      return;
+    }
+
+    const selectedCountry = COUNTRIES.find(c => c.dial_code === formData.countryCode);
+    if (selectedCountry) {
+      const fullNumber = `${formData.countryCode}${phoneDigits}`;
+      const isValid = isValidPhoneNumber(fullNumber, selectedCountry.code as any);
+      setPhoneStatus({
+        isValid,
+        message: isValid ? `Standard size for ${selectedCountry.name}` : `Invalid for ${selectedCountry.name}`,
+        show: true
+      });
+    }
+  }, [formData.phone, formData.countryCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -842,6 +867,12 @@ export default function SuperAdminDashboard() {
                       placeholder="98XXXXXXXX" 
                     />
                   </div>
+                  {phoneStatus.show && (
+                    <div className={`mt-2 ml-1 flex items-center gap-2 text-[10px] font-bold transition-all duration-300 animate-in fade-in slide-in-from-top-1 ${phoneStatus.isValid ? 'text-emerald-600' : 'text-rose-500'}`}>
+                      {phoneStatus.isValid ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                      <span className="tracking-widest uppercase">{phoneStatus.message}</span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">PAN Number</label>
