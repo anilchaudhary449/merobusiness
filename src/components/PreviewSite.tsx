@@ -8,7 +8,7 @@ import {
   Lock, CheckCircle2, XCircle, ArrowRight, LogOut,
   BadgeCheck, Clock, X, AtSign, Calendar
 } from 'lucide-react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import { toast } from 'sonner';
 import { getThemePreset } from '@/lib/theme-presets';
 import useSWR from 'swr';
@@ -45,6 +45,15 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
   const [activeProduct, setActiveProduct] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'reviews' | 'faqs'>('overview');
   const [authModal, setAuthModal] = useState<'login' | 'register' | 'forgot' | null>(null);
+  const [profileModal, setProfileModal] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    firstName: '', middleName: '', lastName: '', phone: '',
+    deliveryAddress: '',
+    mapLocationLabel: '', mapLocationLat: '', mapLocationLng: '', mapLocationUrl: '',
+    currentPassword: '', newPassword: '', confirmNewPassword: ''
+  });
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
   
   // Auth Form States
   const [authForm, setAuthForm] = useState({
@@ -60,6 +69,12 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
 
   const fetcher = (url: string) => fetch(url).then(res => res.json());
   
+  // Customer own profile data
+  const { data: customerProfile, mutate: mutateProfile } = useSWR(
+    session?.user ? '/api/store/customer/profile' : null,
+    fetcher
+  );
+
   // Real-time Wishlist Data
   const { data: wishlistData, mutate: mutateWishlist } = useSWR(
     session?.user ? `/api/store/${site.slug || site._id}/wishlist` : null, 
@@ -123,11 +138,18 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
         toast.success('Registration successful! Please log in.');
         setAuthModal('login');
       } else if (authModal === 'login') {
-        const res = await fetch('/api/auth/callback/credentials', { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: authForm.email, password: authForm.password, redirect: false })
+        const result = await signIn('credentials', {
+          redirect: false,
+          email: authForm.email,
+          password: authForm.password,
+          loginContext: 'customer',
         });
+        if (result?.error) {
+          throw new Error('Invalid email or password. Please try again.');
+        }
+        toast.success('Welcome back!');
+        setAuthModal(null);
+        // Reload to refresh session-dependent UI (wishlist, profile icon)
         window.location.reload();
       }
     } catch (err: any) {
@@ -176,8 +198,46 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
     }
   };
 
-  const { content, businessName, whatsappNumber, messengerUsername } = site;
+  const handleProfileSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (profileForm.newPassword && profileForm.newPassword !== profileForm.confirmNewPassword) {
+      toast.error('New passwords do not match.');
+      return;
+    }
+    setIsProfileSaving(true);
+    try {
+      const res = await fetch('/api/store/customer/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: profileForm.firstName,
+          middleName: profileForm.middleName,
+          lastName: profileForm.lastName,
+          phone: profileForm.phone,
+          deliveryAddress: profileForm.deliveryAddress,
+          mapLocation: {
+            label: profileForm.mapLocationLabel,
+            lat: profileForm.mapLocationLat ? parseFloat(profileForm.mapLocationLat) : undefined,
+            lng: profileForm.mapLocationLng ? parseFloat(profileForm.mapLocationLng) : undefined,
+          },
+          currentPassword: profileForm.currentPassword || undefined,
+          newPassword: profileForm.newPassword || undefined,
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Profile updated successfully!');
+      mutateProfile();
+      setProfileModal(false);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsProfileSaving(false);
+    }
+  };
+
   const activeTheme = getThemePreset(site.theme);
+  const { content, businessName, whatsappNumber, messengerUsername } = site;
   
   const displayPhone = site.directPhone || ownerInfo?.phone || '';
   const displayEmail = site.businessEmail || ownerInfo?.email || '';
@@ -218,30 +278,57 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
     : 'bg-white border-gray-100';
   const isDarkTheme = themeCardClass.includes('bg-white/5');
 
-  const handleMessengerOrder = async (
+  const handleOrderClick = async (
     event: React.MouseEvent<HTMLAnchorElement>,
-    message: string
+    message: string,
+    product: any | null,
+    method: 'WHATSAPP' | 'MESSENGER',
+    link: string
   ) => {
-    const href = buildMessengerLink(message);
-    if (href === '#') {
-      event.preventDefault();
+    event.preventDefault();
+
+    if (!session?.user) {
+      setAuthModal('login');
       return;
     }
 
-    event.preventDefault();
-
     try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(message);
-        setMessengerNotice('Order message copied. Paste it into Messenger.');
-        window.setTimeout(() => setMessengerNotice(''), 3000);
+      if (product) {
+        await fetch(`/api/store/${site.slug || site._id}/orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId: (session.user as any).id || (session.user as any)._id,
+            product: {
+              id: product.id || product._id,
+              name: product.name,
+              price: product.price,
+              imageUrl: product.imageUrl,
+            },
+            method,
+          })
+        });
       }
-    } catch {
-      setMessengerNotice('Messenger opened. If needed, paste your order details manually.');
-      window.setTimeout(() => setMessengerNotice(''), 3000);
+    } catch (e) {
+      console.error("Failed to log order", e);
     }
 
-    window.open(href, '_blank', 'noopener,noreferrer');
+    if (method === 'MESSENGER') {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(message);
+          setMessengerNotice('Order message copied. Paste it into Messenger.');
+          window.setTimeout(() => setMessengerNotice(''), 3000);
+        }
+      } catch {
+        setMessengerNotice('Messenger opened. If needed, paste your order details manually.');
+        window.setTimeout(() => setMessengerNotice(''), 3000);
+      }
+    }
+
+    if (link && link !== '#') {
+      window.open(link, '_blank', 'noopener,noreferrer');
+    }
   };
   
   const getAnimClass = (customStyle?: string) => {
@@ -422,23 +509,85 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
           <a href="#about" className="hover:text-brand-accent transition-colors" style={{ color: 'inherit' }}>About</a>
         </div>
         <div className="flex items-center space-x-3">
+        {/* User area: logged in = profile icon+dropdown, else = Login button */}
           {session?.user ? (
-            <div className="flex items-center gap-2 group relative">
-               <div className="hidden lg:block text-right">
-                  <p className="text-[10px] font-black uppercase text-slate-400">Welcome Back</p>
-                  <p className="text-xs font-bold text-slate-700">{session.user.name?.split(' ')[0]}</p>
-               </div>
-               <button 
-                 onClick={() => signOut()}
-                 className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-50 transition-all"
-                 title="Log Out"
-               >
-                 <LogOut size={18} />
-               </button>
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowProfileMenu(v => !v);
+                  if (!profileModal && customerProfile) {
+                    setProfileForm({
+                      firstName: customerProfile.firstName || '',
+                      middleName: customerProfile.middleName || '',
+                      lastName: customerProfile.lastName || '',
+                      phone: customerProfile.phone || '',
+                      deliveryAddress: customerProfile.deliveryAddress || '',
+                      mapLocationLabel: customerProfile.mapLocation?.label || '',
+                      mapLocationLat: customerProfile.mapLocation?.lat?.toString() || '',
+                      mapLocationLng: customerProfile.mapLocation?.lng?.toString() || '',
+                      mapLocationUrl: '',
+                      currentPassword: '', newPassword: '', confirmNewPassword: ''
+                    });
+                  }
+                }}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all group"
+                title={`Signed in as ${session.user.name}`}
+              >
+                <div className="w-8 h-8 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-600 font-black text-sm">
+                  {(session.user.name || 'C').charAt(0).toUpperCase()}
+                </div>
+                <div className="hidden lg:block text-left">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">My Account</p>
+                  <p className="text-xs font-bold text-slate-700 leading-tight">{session.user.name?.split(' ')[0]}</p>
+                </div>
+              </button>
+
+              {/* Dropdown */}
+              {showProfileMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-[24px] shadow-2xl border border-slate-100 z-50 overflow-hidden animate-in slide-in-from-top-2 duration-150">
+                  <div className="px-5 py-4 border-b border-slate-50">
+                    <p className="text-xs font-black text-slate-900">{session.user.name}</p>
+                    <p className="text-[10px] font-medium text-slate-400 mt-0.5 truncate">{session.user.email}</p>
+                  </div>
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        if (customerProfile) {
+                        setProfileForm({
+                          firstName: customerProfile.firstName || '',
+                          middleName: customerProfile.middleName || '',
+                          lastName: customerProfile.lastName || '',
+                          phone: customerProfile.phone || '',
+                          deliveryAddress: customerProfile.deliveryAddress || '',
+                          mapLocationLabel: customerProfile.mapLocation?.label || '',
+                          mapLocationLat: customerProfile.mapLocation?.lat?.toString() || '',
+                          mapLocationLng: customerProfile.mapLocation?.lng?.toString() || '',
+                          mapLocationUrl: '',
+                          currentPassword: '', newPassword: '', confirmNewPassword: ''
+                        });
+                        }
+                        setProfileModal(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-2xl transition-all"
+                    >
+                      <User size={16} className="text-indigo-500" />
+                      Edit Profile
+                    </button>
+                    <button
+                      onClick={() => { setShowProfileMenu(false); signOut(); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
+                    >
+                      <LogOut size={16} />
+                      Log Out
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <button 
-              onClick={() => setAuthModal('login')}
+              onClick={() => { setShowProfileMenu(false); setAuthModal('login'); }}
               className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-full text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
             >
               <LogIn size={14} className="text-brand-accent" />
@@ -447,7 +596,7 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
           )}
           <a 
             href={whatsappLink}
-            target="_blank" rel="noreferrer"
+            onClick={(e) => handleOrderClick(e, defaultOrderMessage, null, 'WHATSAPP', whatsappLink)}
             className="flex items-center space-x-2 px-5 py-2.5 bg-brand-accent rounded-full text-xs font-bold text-white shadow-lg shadow-brand-accent/20 hover:scale-105 transition-transform"
           >
             <MessageCircle size={14} />
@@ -566,24 +715,16 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                       <div className="grid grid-cols-2 gap-2 mt-auto">
                         <a
                           href={buildWhatsAppLink(`Hi, I am interested in ${product.name} of ${product.price}`)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center justify-center bg-green-50 text-green-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-green-100 hover:bg-green-100"
+                          onClick={(e) => handleOrderClick(e, `Hi, I am interested in ${product.name} of ${product.price}`, product, 'WHATSAPP', buildWhatsAppLink(`Hi, I am interested in ${product.name} of ${product.price}`))}
+                          className="flex items-center justify-center bg-green-50 text-green-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-green-100 hover:bg-green-100 cursor-pointer"
                         >
                           <MessageCircle size={14} className="mr-1" />
                           WhatsApp
                         </a>
                         <a
                           href={buildMessengerLink(`Hi, I am interested in ${product.name} of ${product.price}`)}
-                          onClick={(event) =>
-                            handleMessengerOrder(
-                              event,
-                              `Hi, I am interested in ${product.name} of ${product.price}`
-                            )
-                          }
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center justify-center bg-blue-50 text-blue-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-blue-100 hover:bg-blue-100"
+                          onClick={(e) => handleOrderClick(e, `Hi, I am interested in ${product.name} of ${product.price}`, product, 'MESSENGER', buildMessengerLink(`Hi, I am interested in ${product.name} of ${product.price}`))}
+                          className="flex items-center justify-center bg-blue-50 text-blue-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-blue-100 hover:bg-blue-100 cursor-pointer"
                         >
                           <MessengerIcon size={14} className="mr-1" />
                           Messenger
@@ -751,6 +892,7 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
         )}
         <a 
           href={whatsappLink}
+          onClick={(e) => handleOrderClick(e, defaultOrderMessage, null, 'WHATSAPP', whatsappLink)}
           className="flex-1 pointer-events-auto h-12 bg-green-500 rounded-2xl flex items-center justify-center shadow-2xl text-white font-bold text-xs"
         >
           <MessageCircle size={18} className="mr-1.5" />
@@ -759,9 +901,7 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
         {messengerUsername && (
           <a 
             href={messengerLink}
-            onClick={(event) =>
-              handleMessengerOrder(event, defaultOrderMessage)
-            }
+            onClick={(e) => handleOrderClick(e, defaultOrderMessage, null, 'MESSENGER', messengerLink)}
             className="flex-1 pointer-events-auto h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl text-white font-bold text-xs"
           >
             <MessengerIcon size={18} className="mr-1.5" />
@@ -915,8 +1055,8 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                <div className="mt-8 pt-6 border-t border-slate-100 flex gap-3">
                   <a 
                     href={buildWhatsAppLink(`Hi, I want to order ${activeProduct.name} for ${activeProduct.price}`)}
-                    target="_blank" rel="noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 py-4 bg-emerald-600 text-white font-bold text-sm rounded-2xl shadow-xl shadow-emerald-600/20 hover:scale-105 transition-all"
+                    onClick={(e) => handleOrderClick(e, `Hi, I want to order ${activeProduct.name} for ${activeProduct.price}`, activeProduct, 'WHATSAPP', buildWhatsAppLink(`Hi, I want to order ${activeProduct.name} for ${activeProduct.price}`))}
+                    className="flex-1 flex items-center justify-center gap-2 py-4 bg-emerald-600 text-white font-bold text-sm rounded-2xl shadow-xl shadow-emerald-600/20 hover:scale-105 transition-all cursor-pointer"
                   >
                     <MessageCircle size={18} />
                     Buy via WhatsApp
@@ -931,7 +1071,8 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
       {authModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div className="absolute inset-0 modal-backdrop" onClick={() => setAuthModal(null)} />
-          <div className="relative w-full max-w-md bg-white rounded-[40px] overflow-hidden shadow-2xl p-8 md:p-10 animate-in scale-in-95 duration-200">
+          <div className="relative w-full max-w-md bg-white rounded-[40px] flex flex-col max-h-[90vh] shadow-2xl animate-in scale-in-95 duration-200">
+             <div className="relative p-8 md:p-10 overflow-y-auto custom-scrollbar flex-1">
              <button onClick={() => setAuthModal(null)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 transition-all">
                 <X size={20} />
              </button>
@@ -969,43 +1110,53 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Gmail Address</label>
                    <div className="relative group">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
-                      <input required type="email" value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} placeholder="yourname@gmail.com" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
+                      <input required type="email" value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} placeholder="yourname@gmail.com" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
                    </div>
                 </div>
 
                 {authModal === 'register' && (
-                  <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Date of Birth (16+ Required)</label>
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">DOB (16+)</label>
                        <div className="relative group">
-                          <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                          <input required type="date" value={authForm.dob} onChange={e => setAuthForm({...authForm, dob: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
+                          <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                          <input required type="date" value={authForm.dob} onChange={e => setAuthForm({...authForm, dob: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
                        </div>
                     </div>
                     <div className="space-y-1">
-                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Mobile Number</label>
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Mobile</label>
                        <div className="relative group">
-                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                          <input required type="tel" value={authForm.phone} onChange={e => setAuthForm({...authForm, phone: e.target.value})} placeholder="+977 98XXXXXXX" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
+                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                          <input required type="tel" value={authForm.phone} onChange={e => setAuthForm({...authForm, phone: e.target.value})} placeholder="98XXXXXXX" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
                        </div>
                     </div>
-                  </>
+                  </div>
                 )}
 
-                {authModal !== 'forgot' && (
+                {authModal === 'register' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Password</label>
+                       <div className="relative group">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                          <input required type="password" value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} placeholder="••••••••" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
+                       </div>
+                    </div>
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm</label>
+                       <div className="relative group">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                          <input required type="password" value={authForm.confirmPassword} onChange={e => setAuthForm({...authForm, confirmPassword: e.target.value})} placeholder="••••••••" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                       </div>
+                    </div>
+                  </div>
+                ) : authModal !== 'forgot' && (
                   <div className="space-y-1">
                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Password</label>
                      <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input required type="password" value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} placeholder="••••••••" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
                      </div>
-                  </div>
-                )}
-
-                {authModal === 'register' && (
-                  <div className="space-y-1">
-                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm Password</label>
-                     <input required type="password" value={authForm.confirmPassword} onChange={e => setAuthForm({...authForm, confirmPassword: e.target.value})} placeholder="••••••••" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 text-sm font-bold outline-none" />
                   </div>
                 )}
 
@@ -1041,6 +1192,177 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                    </button>
                 </p>
              </div>
+           </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Customer Profile Edit Modal ─── */}
+      {profileModal && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
+          <div className="absolute inset-0 modal-backdrop" onClick={() => setProfileModal(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-[40px] flex flex-col max-h-[90vh] shadow-2xl animate-in scale-in-95 duration-200">
+            <div className="relative p-8 overflow-y-auto custom-scrollbar flex-1">
+              <button onClick={() => setProfileModal(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 transition-all">
+                <X size={20} />
+              </button>
+
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 rounded-3xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mx-auto mb-4">
+                  <User size={28} />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900">My Profile</h3>
+                <p className="text-sm text-slate-500 mt-1 font-medium">Update your personal information</p>
+              </div>
+
+              <form onSubmit={handleProfileSave} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</label>
+                    <input type="text" value={profileForm.firstName} onChange={e => setProfileForm({...profileForm, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</label>
+                    <input type="text" value={profileForm.lastName} onChange={e => setProfileForm({...profileForm, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Middle Name (Optional)</label>
+                  <input type="text" value={profileForm.middleName} onChange={e => setProfileForm({...profileForm, middleName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Phone Number</label>
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input type="tel" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} placeholder="+977 98XXXXXXX" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold" />
+                  </div>
+                </div>
+
+                {/* ─── Delivery & Location ─── */}
+                <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Delivery / Pickup Location</p>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Street / Area Address</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-3 text-slate-400" size={16} />
+                      <textarea
+                        value={profileForm.deliveryAddress}
+                        onChange={e => setProfileForm({...profileForm, deliveryAddress: e.target.value})}
+                        placeholder="e.g. Thamel, Kathmandu, Nepal — near XYZ landmark"
+                        rows={2}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Google Maps Link <span className="normal-case text-slate-300">(paste share URL)</span></label>
+                    <div className="relative">
+                      <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                      <input
+                        type="url"
+                        value={profileForm.mapLocationUrl}
+                        onChange={e => {
+                          const url = e.target.value;
+                          setProfileForm(f => ({...f, mapLocationUrl: url}));
+                          // Extract @lat,lng from Google Maps share URL
+                          const match = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                          if (match) {
+                            setProfileForm(f => ({...f, mapLocationUrl: url, mapLocationLat: match[1], mapLocationLng: match[2], mapLocationLabel: f.mapLocationLabel || 'My Location'}));
+                          }
+                        }}
+                        placeholder="https://maps.app.goo.gl/..."
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Current Location button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!navigator.geolocation) { toast.error('Geolocation not supported by this browser.'); return; }
+                      navigator.geolocation.getCurrentPosition(
+                        pos => {
+                          const lat = pos.coords.latitude.toFixed(6);
+                          const lng = pos.coords.longitude.toFixed(6);
+                          setProfileForm(f => ({...f, mapLocationLat: lat, mapLocationLng: lng, mapLocationLabel: f.mapLocationLabel || 'My Current Location'}));
+                          toast.success('Location captured!');
+                        },
+                        () => toast.error('Permission denied. Please allow location access.')
+                      );
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold text-xs rounded-2xl hover:bg-emerald-100 transition-all"
+                  >
+                    <MapPin size={14} /> Use My Current Location
+                  </button>
+
+                  {/* Preview card if coordinates exist */}
+                  {profileForm.mapLocationLat && profileForm.mapLocationLng && (
+                    <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-2">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400">Pinned Location</p>
+                      <input
+                        type="text"
+                        value={profileForm.mapLocationLabel}
+                        onChange={e => setProfileForm({...profileForm, mapLocationLabel: e.target.value})}
+                        placeholder="Location name / landmark"
+                        className="w-full bg-white border border-indigo-100 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-300"
+                      />
+                      <div className="flex items-center gap-3 text-[10px] font-bold text-indigo-600">
+                        <span>📍 {parseFloat(profileForm.mapLocationLat).toFixed(5)}° N, {parseFloat(profileForm.mapLocationLng).toFixed(5)}° E</span>
+                        <a
+                          href={`https://www.google.com/maps?q=${profileForm.mapLocationLat},${profileForm.mapLocationLng}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="ml-auto underline text-indigo-500 hover:text-indigo-700"
+                        >
+                          Open in Maps ↗
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-slate-100">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Change Password (optional)</p>
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input type="password" value={profileForm.currentPassword} onChange={e => setProfileForm({...profileForm, currentPassword: e.target.value})} placeholder="Current password" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input type="password" value={profileForm.newPassword} onChange={e => setProfileForm({...profileForm, newPassword: e.target.value})} placeholder="New password" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold" />
+                      </div>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input type="password" value={profileForm.confirmNewPassword} onChange={e => setProfileForm({...profileForm, confirmNewPassword: e.target.value})} placeholder="Confirm new" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isProfileSaving}
+                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-xl shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 mt-2"
+                >
+                  {isProfileSaving ? <Loader2 className="animate-spin" size={20} /> : (
+                    <><CheckCircle2 size={18} /> Save Changes</>
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-6 pt-4 border-t border-slate-50">
+                <button
+                  onClick={() => { setProfileModal(false); signOut(); }}
+                  className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-rose-500 hover:bg-rose-50 rounded-2xl transition-all"
+                >
+                  <LogOut size={16} /> Sign Out of Account
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

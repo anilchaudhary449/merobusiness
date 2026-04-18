@@ -17,6 +17,15 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // Admin portal guard: only @merobusiness.com emails are authorized
+      if (!email.toLowerCase().endsWith('@merobusiness.com')) {
+        toast.error('Access Denied', {
+          description: 'Only @merobusiness.com accounts are authorized for admin access. Customers must use the store login.',
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const result = await signIn('credentials', {
         redirect: false,
         email,

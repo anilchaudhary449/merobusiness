@@ -27,6 +27,13 @@ export interface IUser extends Document {
     businessName?: string;
     nationalIdPhoto?: string;
   };
+  deliveryAddress?: string;
+  mapLocation?: {
+    label?: string;
+    lat?: number;
+    lng?: number;
+    placeId?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -53,6 +60,13 @@ const UserSchema = new Schema<IUser>(
     },
     assignedSiteIds: [{ type: String }],
     pendingProfileChanges: { type: Schema.Types.Mixed },
+    deliveryAddress: { type: String },
+    mapLocation: {
+      label: { type: String },
+      lat: { type: Number },
+      lng: { type: Number },
+      placeId: { type: String },
+    },
   },
   { timestamps: true }
 );

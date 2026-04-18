@@ -37,6 +37,12 @@ export default function SuperAdminDashboard() {
   const [idPhotoModal, setIdPhotoModal] = useState<string | null>(null);
   const [viewingAdmin, setViewingAdmin] = useState<any>(null);
   const [rejectModal, setRejectModal] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
+  const [customerForm, setCustomerForm] = useState({
+    firstName: '', middleName: '', lastName: '', email: '',
+    phone: '', dob: '', status: 'ACTIVE', newPassword: ''
+  });
+  const [isCustomerSaving, setIsCustomerSaving] = useState(false);
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
@@ -277,6 +283,54 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const handleOpenEditCustomer = (customer: any) => {
+    setCustomerForm({
+      firstName: customer.firstName || '',
+      middleName: customer.middleName || '',
+      lastName: customer.lastName || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      dob: customer.dob ? new Date(customer.dob).toISOString().split('T')[0] : '',
+      status: customer.status || 'ACTIVE',
+      newPassword: '',
+    });
+    setEditingCustomer(customer);
+  };
+
+  const handleCustomerSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCustomerSaving(true);
+    try {
+      const payload: any = { ...customerForm };
+      if (!payload.newPassword) delete payload.newPassword;
+      const res = await fetch(`/api/admin/customers/${editingCustomer._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error); }
+      toast.success('Customer updated successfully');
+      setEditingCustomer(null);
+      mutateCustomers();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsCustomerSaving(false);
+    }
+  };
+
+  const handleDeleteCustomer = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this customer account? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/admin/customers/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      toast.success('Customer deleted');
+      mutateCustomers();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">
@@ -480,7 +534,10 @@ export default function SuperAdminDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button onClick={() => handleDelete(customer._id)} className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete Customer">
+                    <button onClick={() => handleOpenEditCustomer(customer)} className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit Customer">
+                      <Edit2 size={20} />
+                    </button>
+                    <button onClick={() => handleDeleteCustomer(customer._id)} className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete Customer">
                       <Trash2 size={20} />
                     </button>
                   </div>
@@ -1220,6 +1277,90 @@ export default function SuperAdminDashboard() {
             <div className="flex gap-3 mt-5">
               <button onClick={() => { setRejectModal({ open: false, id: '', name: '' }); setRejectionReason(''); }} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all">Cancel</button>
               <button onClick={handleReject} className="flex-[2] py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl shadow-lg shadow-red-600/20 transition-all">Confirm Rejection</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Customer Edit Modal ─── */}
+      {editingCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[32px] w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-8 pt-8 pb-5 border-b border-slate-100">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Edit Customer</h3>
+                <p className="text-sm text-slate-500 mt-0.5">{editingCustomer.email}</p>
+              </div>
+              <button onClick={() => setEditingCustomer(null)} className="p-2 text-slate-400 hover:text-slate-900 transition-all">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-8">
+              <form id="customer-edit-form" onSubmit={handleCustomerSave} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">First Name</label>
+                    <input required type="text" value={customerForm.firstName} onChange={e => setCustomerForm({...customerForm, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Last Name</label>
+                    <input required type="text" value={customerForm.lastName} onChange={e => setCustomerForm({...customerForm, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Middle Name (Optional)</label>
+                  <input type="text" value={customerForm.middleName} onChange={e => setCustomerForm({...customerForm, middleName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address</label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input required type="email" value={customerForm.email} onChange={e => setCustomerForm({...customerForm, email: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Phone</label>
+                    <div className="relative">
+                      <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input type="tel" value={customerForm.phone} onChange={e => setCustomerForm({...customerForm, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Birth</label>
+                    <div className="relative">
+                      <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input type="date" value={customerForm.dob} onChange={e => setCustomerForm({...customerForm, dob: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Account Status</label>
+                  <select value={customerForm.status} onChange={e => setCustomerForm({...customerForm, status: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400">
+                    <option value="ACTIVE">Active</option>
+                    <option value="SUSPENDED">Suspended</option>
+                    <option value="BANNED">Banned</option>
+                  </select>
+                </div>
+                <div className="space-y-1 pt-2 border-t border-slate-100">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">New Password (leave blank to keep current)</label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input type="password" value={customerForm.newPassword} onChange={e => setCustomerForm({...customerForm, newPassword: e.target.value})} placeholder="••••••••" className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div className="border-t border-slate-100 p-6 flex gap-3">
+              <button onClick={() => setEditingCustomer(null)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all">Cancel</button>
+              <button
+                form="customer-edit-form"
+                type="submit"
+                disabled={isCustomerSaving}
+                className="flex-[2] flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 transition-all"
+              >
+                {isCustomerSaving ? <Loader2 className="animate-spin" size={18} /> : <><Check size={18} /> Save Changes</>}
+              </button>
             </div>
           </div>
         </div>

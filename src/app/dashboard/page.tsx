@@ -11,7 +11,7 @@ import { createWebsiteSchema, CreateWebsiteInput } from '@/lib/validations/websi
 import { 
   PlusCircle, Link as LinkIcon, Settings, Globe, AlertCircle, 
   Trash2, ToggleLeft, ToggleRight, Palette, LogOut, ShieldCheck,
-  LayoutDashboard, Loader2, UserCog, X, Mail, Phone, User as UserIcon, Send, MessageSquare, CheckCircle2, XCircle
+  LayoutDashboard, Loader2, UserCog, X, Mail, Phone, User as UserIcon, Send, MessageSquare, CheckCircle2, XCircle, ShoppingCart, Users
 } from 'lucide-react';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { toast } from 'sonner';
@@ -33,6 +33,12 @@ export default function Dashboard() {
   const { data: websites, error, mutate, isLoading } = useSWR('/api/websites', fetcher);
   const { data: userProfile, mutate: mutateUserProfile } = useSWR('/api/admin/profile', fetcher);
   const { data: superAdminContact } = useSWR((status === 'authenticated' && (session?.user as any).role !== 'SUPER_ADMIN') ? '/api/super-admin/contact' : null, fetcher);
+  
+  // CRM & Orders
+  const { data: customersData, isLoading: isLoadingCustomers } = useSWR('/api/admin/my-customers', fetcher);
+  const { data: ordersData, isLoading: isLoadingOrders } = useSWR('/api/admin/my-orders', fetcher);
+
+  const [activeTab, setActiveTab] = useState<'stores' | 'customers' | 'orders'>('stores');
   
   // Support Chat SWR
   const { data: supportTicket, mutate: mutateSupport } = useSWR(
@@ -388,6 +394,29 @@ export default function Dashboard() {
           </div>
         </header>
 
+        {/* --- Tabs --- */}
+        <div className="flex items-center space-x-2 border-b border-slate-200">
+          <button 
+            onClick={() => setActiveTab('stores')}
+            className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'stores' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+          >
+            <span className="flex items-center"><Globe size={16} className="mr-2" /> Stores & Sites</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('customers')}
+            className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'customers' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+          >
+            <span className="flex items-center"><Users size={16} className="mr-2" /> Customers</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('orders')}
+            className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'orders' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+          >
+            <span className="flex items-center"><ShoppingCart size={16} className="mr-2" /> Orders Track</span>
+          </button>
+        </div>
+
+        {activeTab === 'stores' && (
         <main className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Create Site Section - Only for Super Admins */}
           {isSuperAdmin && (
@@ -673,6 +702,122 @@ export default function Dashboard() {
             </div>
           )}
         </main>
+        )}
+
+        {/* --- CUSTOMERS TAB --- */}
+        {activeTab === 'customers' && (
+          <div className="bg-white rounded-[32px] shadow-xl p-8 border border-white">
+            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+              <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                <Users size={20} />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">Store Customers</h2>
+            </div>
+            
+            {isLoadingCustomers ? (
+              <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-indigo-500" /></div>
+            ) : !customersData?.customers?.length ? (
+              <div className="py-12 text-center text-slate-500">No customers registered for your stores yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      <th className="py-4 px-4 font-bold">Customer Name</th>
+                      <th className="py-4 px-4 font-bold">Email</th>
+                      <th className="py-4 px-4 font-bold">Phone</th>
+                      <th className="py-4 px-4 font-bold">Delivery Location</th>
+                      <th className="py-4 px-4 font-bold">Registered</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 text-sm">
+                    {customersData.customers.map((c: any) => (
+                      <tr key={c._id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-4 px-4 font-bold text-slate-800">{c.name || 'N/A'}</td>
+                        <td className="py-4 px-4 text-slate-600 font-medium">{c.email}</td>
+                        <td className="py-4 px-4 text-slate-600">{c.phone || '-'}</td>
+                        <td className="py-4 px-4 text-slate-600 max-w-xs truncate" title={c.deliveryAddress}>
+                          {c.deliveryAddress || '-'}
+                        </td>
+                        <td className="py-4 px-4 text-slate-500 text-xs font-medium">
+                          {new Date(c.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* --- ORDERS TAB --- */}
+        {activeTab === 'orders' && (
+          <div className="bg-white rounded-[32px] shadow-xl p-8 border border-white">
+            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+              <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                <ShoppingCart size={20} />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">Tracked Orders</h2>
+            </div>
+            
+            {isLoadingOrders ? (
+              <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-emerald-500" /></div>
+            ) : !ordersData?.orders?.length ? (
+              <div className="py-12 text-center text-slate-500">No orders tracked for your stores yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      <th className="py-4 px-4 font-bold">Date & Time</th>
+                      <th className="py-4 px-4 font-bold">Product Ordered</th>
+                      <th className="py-4 px-4 font-bold text-right">Price</th>
+                      <th className="py-4 px-4 font-bold">Customer</th>
+                      <th className="py-4 px-4 font-bold">Method</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 text-sm">
+                    {ordersData.orders.map((o: any) => (
+                      <tr key={o._id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-4 px-4 text-slate-500 font-medium whitespace-nowrap">
+                          {new Date(o.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-3">
+                            {o.product?.imageUrl ? (
+                              <img src={o.product.imageUrl} alt="img" className="w-10 h-10 object-cover rounded-xl shadow-sm border border-slate-100" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200"></div>
+                            )}
+                            <span className="font-bold text-slate-800">{o.product?.name || 'Unknown Item'}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-black text-xs">
+                            {o.product?.price || '-'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <p className="font-bold text-slate-800">{o.customerId?.name || 'Guest'}</p>
+                          <p className="text-[10px] text-slate-500 font-medium truncate w-32" title={o.customerId?.email}>{o.customerId?.email}</p>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`inline-block px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-md border ${
+                            o.method === 'WHATSAPP' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
+                            {o.method}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
       {/* Admin Profile Modal */}

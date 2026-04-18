@@ -15,7 +15,8 @@ export async function POST(req: Request) {
       dob, 
       phone, 
       password, 
-      confirmPassword 
+      confirmPassword,
+      siteId
     } = body;
 
     // --- Basic Validation ---
@@ -50,13 +51,32 @@ export async function POST(req: Request) {
     }
 
     // --- Phone Validation ---
-    const phoneParts = phone.split(' ');
-    const dialCode = phoneParts[0];
-    const phoneDigits = phoneParts.slice(1).join('').replace(/[^0-9]/g, '');
+    // Try to be robust: handle '+977 98...' or '+97798...' or just '98...'
+    let dialCode = body.countryCode || '+977';
+    let phoneDigits = phone.replace(/[^0-9]/g, '');
+
+    if (phone.startsWith('+')) {
+      // If the phone itself starts with +, try to parse it
+      // We'll look for a space first as a hint
+      if (phone.includes(' ')) {
+        const parts = phone.split(' ');
+        dialCode = parts[0];
+        phoneDigits = parts.slice(1).join('').replace(/[^0-9]/g, '');
+      } else {
+        // No space, but starts with +. We'll assume the first few digits are the dial code
+        // and let the validator handle the lookup.
+        // If we have countryCode from body, we use that as a fallback.
+        dialCode = body.countryCode || '+977';
+        phoneDigits = phone.replace(dialCode, '').replace(/[^0-9]/g, '');
+      }
+    }
+
     const phoneValidation = validatePhoneNumber(dialCode, phoneDigits);
     
     if (!phoneValidation.isValid) {
-      return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
+      return NextResponse.json({ 
+        error: phoneValidation.error || "Invalid phone number format." 
+      }, { status: 400 });
     }
 
     await dbConnect();
@@ -83,7 +103,7 @@ export async function POST(req: Request) {
       phone,
       status: 'ACTIVE', // Customers can start shopping immediately
       permissions: { canChangeTheme: false },
-      assignedSiteIds: [],
+      assignedSiteIds: siteId ? [siteId] : [],
     });
 
     return NextResponse.json({

@@ -12,6 +12,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        loginContext: { label: "Login Context", type: "text" }, // 'customer' | 'admin'
       },
       async authorize(credentials) {
         if (!process.env.NEXTAUTH_SECRET && process.env.NODE_ENV === 'production') {
@@ -31,7 +32,37 @@ export const authOptions: NextAuthOptions = {
             throw new Error("User not found or password not set");
           }
 
-          // Block login for non-active accounts
+          // ──────────────────────────────────────────
+          // Role-Based Login Context Enforcement
+          // ──────────────────────────────────────────
+          const isCustomerLogin = credentials.loginContext === 'customer';
+
+          if (isCustomerLogin) {
+            // Customer store: CUSTOMER accounts must use @gmail.com
+            // ADMIN and SUPER_ADMIN with @merobusiness.com can also access the store
+            if (user.role === 'CUSTOMER') {
+              if (!user.email.endsWith('@gmail.com')) {
+                throw new Error("Customer accounts must use a Gmail address.");
+              }
+            } else if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+              if (!user.email.endsWith('@merobusiness.com')) {
+                throw new Error("Admin accounts must use their @merobusiness.com address.");
+              }
+              // Admins are allowed to browse/access the store — no block
+            } else {
+              throw new Error("Unrecognized account type.");
+            }
+          } else {
+            // Admin portal (/login): CUSTOMER accounts are strictly forbidden
+            if (user.role === 'CUSTOMER') {
+              throw new Error("Customer accounts cannot access the admin portal. Please use the store login instead.");
+            }
+            // Admin portal: only @merobusiness.com emails are authorized
+            if (!user.email.endsWith('@merobusiness.com')) {
+              throw new Error("Only @merobusiness.com accounts are authorized for admin access.");
+            }
+          }
+
           if (user.status === 'PENDING') {
             throw new Error("Your account is pending approval by the Super-Admin. Please wait.");
           }
