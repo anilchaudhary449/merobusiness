@@ -276,6 +276,24 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
           </span>
         </div>
         <div className="hidden md:flex space-x-6 text-sm font-medium">
+          <a href="#hero" className="hover:text-brand-accent transition-colors" style={{ color: 'inherit' }}>Home</a>
+          <a href="#products" className="hover:text-brand-accent transition-colors" style={{ color: 'inherit' }}>Products</a>
+          <a href="#about" className="hover:text-brand-accent transition-colors" style={{ color: 'inherit' }}>About</a>
+        </div>
+        <div className="flex items-center space-x-3">
+          {displayPhone && (
+            <a 
+              href={`tel:${displayPhone}`}
+              className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-gray-50 rounded-full text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <PhoneCall size={14} className="text-brand-accent" />
+              <span>{displayPhone}</span>
+            </a>
+          )}
+          <a 
+            href={whatsappLink}
+            target="_blank" rel="noreferrer"
+            className="flex items-center space-x-2 px-5 py-2.5 bg-brand-accent rounded-full text-xs font-bold text-white shadow-lg shadow-brand-accent/20 hover:scale-105 transition-transform"
           >
             <MessageCircle size={14} />
             <span className="hidden sm:inline">Order Now</span>
@@ -504,21 +522,34 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                 <p className="opacity-80">{site.location || 'Kathmandu, Nepal'}</p>
               </div>
             </div>
-            {site.directPhone && (
+            {displayPhone && (
               <div className="flex items-start space-x-3 text-sm">
                 <div className="mt-1 p-2 bg-white/5 rounded-lg"><Phone size={16} className="text-brand-accent" /></div>
                 <div>
                   <p className="font-bold mb-1" style={{ color: 'var(--section-heading)' }}>Phone</p>
-                  <p className="opacity-80">{site.directPhone}</p>
+                  <p className="opacity-80">{displayPhone}</p>
                 </div>
               </div>
             )}
-            {site.businessEmail && (
+            {displayEmail && (
               <div className="flex items-start space-x-3 text-sm">
                 <div className="mt-1 p-2 bg-white/5 rounded-lg"><Mail size={16} className="text-brand-accent" /></div>
                 <div>
                   <p className="font-bold mb-1" style={{ color: 'var(--section-heading)' }}>Email</p>
-                  <p className="opacity-80 lowercase">{site.businessEmail}</p>
+                  <p className="opacity-80 lowercase">{displayEmail}</p>
+                </div>
+              </div>
+            )}
+            {displayPan && (
+              <div className="flex items-start space-x-3 text-sm">
+                <div className="mt-1 p-2 bg-white/5 rounded-lg">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-brand-accent">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-bold mb-1" style={{ color: 'var(--section-heading)' }}>PAN No.</p>
+                  <p className="opacity-80 uppercase">{displayPan}</p>
                 </div>
               </div>
             )}
@@ -542,9 +573,9 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
 
       {/* Sticky Mobile CTA */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center space-x-3 md:hidden w-[90%] pointer-events-none">
-        {site.directPhone && (
+        {displayPhone && (
           <a 
-            href={`tel:${site.directPhone}`}
+            href={`tel:${displayPhone}`}
             className="flex-1 pointer-events-auto h-12 bg-white rounded-2xl flex items-center justify-center shadow-2xl border border-gray-100 text-gray-800 font-bold text-sm"
           >
             <PhoneCall size={18} className="mr-2 text-indigo-600" />
