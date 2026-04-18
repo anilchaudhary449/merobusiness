@@ -34,9 +34,13 @@ export default function SuperAdminDashboard() {
 
   // Form State
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     password: '',
     name: '',
+    phone: '',
+    panNumber: '',
+    businessName: '',
     canChangeTheme: false,
     assignedSiteIds: [] as string[]
   });
@@ -53,15 +57,19 @@ export default function SuperAdminDashboard() {
     if (admin) {
       setEditingAdmin(admin);
       setFormData({
+        username: admin.username || '',
         email: admin.email,
         password: '',
         name: admin.name || '',
+        phone: admin.phone || '',
+        panNumber: admin.panNumber || '',
+        businessName: admin.businessName || '',
         canChangeTheme: admin.permissions?.canChangeTheme || false,
         assignedSiteIds: admin.assignedSiteIds || []
       });
     } else {
       setEditingAdmin(null);
-      setFormData({ email: '', password: '', name: '', canChangeTheme: false, assignedSiteIds: [] });
+      setFormData({ username: '', email: '', password: '', name: '', phone: '', panNumber: '', businessName: '', canChangeTheme: false, assignedSiteIds: [] });
     }
     setIsModalOpen(true);
   };
@@ -361,21 +369,37 @@ export default function SuperAdminDashboard() {
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-900"><X /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-8 space-y-6">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-2">Display Name</label>
-                  <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium" placeholder="John Doe" />
+                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Display Name</label>
+                  <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="John Doe" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-2">Email Address</label>
-                  <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium" placeholder="admin@example.com" />
+                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Business Name</label>
+                  <input type="text" required value={formData.businessName} onChange={e => setFormData({...formData, businessName: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="Business Pvt. Ltd." />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Username</label>
+                  <input type="text" required value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="admin123" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Email Address</label>
+                  <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="admin@example.com" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Phone</label>
+                  <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="+977..." />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">PAN Number</label>
+                  <input type="text" required value={formData.panNumber} onChange={e => setFormData({...formData, panNumber: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="PAN Number" />
                 </div>
               </div>
               <div>
                 <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-2">{editingAdmin ? 'New Password (leave blank to keep)' : 'Initial Password'}</label>
                 <div className="relative">
-                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="password" required={!editingAdmin} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium" placeholder="••••••••" />
+                  <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input type="password" required={!editingAdmin} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="••••••••" />
                 </div>
               </div>
               <div className="flex items-center space-x-3 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
