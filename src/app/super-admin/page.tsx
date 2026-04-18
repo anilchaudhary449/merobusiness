@@ -8,7 +8,8 @@ import {
   Users, Plus, Trash2, Edit2, Shield, Globe, 
   Check, X, Loader2, LogOut, LayoutDashboard,
   Lock, Mail, User as UserIcon, Palette,
-  ClipboardList, CheckCircle2, XCircle, Eye, Phone, FileText, Building2, Clock
+  ClipboardList, CheckCircle2, XCircle, Eye, Phone, FileText, Building2, Clock,
+  Info, AtSign, Calendar, BadgeCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -27,6 +28,7 @@ export default function SuperAdminDashboard() {
   const [editingAdmin, setEditingAdmin] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [idPhotoModal, setIdPhotoModal] = useState<string | null>(null);
+  const [viewingAdmin, setViewingAdmin] = useState<any>(null);
   const [rejectModal, setRejectModal] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
   const [rejectionReason, setRejectionReason] = useState('');
 
@@ -235,6 +237,9 @@ export default function SuperAdminDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    <button onClick={() => setViewingAdmin(admin)} className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="View Admin Info">
+                      <Info size={20} />
+                    </button>
                     <button onClick={() => handleOpenModal(admin)} className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit Admin">
                       <Edit2 size={20} />
                     </button>
@@ -409,6 +414,111 @@ export default function SuperAdminDashboard() {
               <X size={20} />
             </button>
             <img src={idPhotoModal} alt="National ID" className="w-full rounded-2xl shadow-2xl border border-white/20" />
+          </div>
+        </div>
+      )}
+
+      {/* Admin Info Modal */}
+      {viewingAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm" onClick={() => setViewingAdmin(null)}>
+          <div className="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-white">
+                  <UserIcon size={30} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white">{viewingAdmin.name || viewingAdmin.businessName || 'Admin'}</h3>
+                  <p className="text-indigo-200 text-sm font-mono mt-0.5">{viewingAdmin.email}</p>
+                </div>
+              </div>
+              <button onClick={() => setViewingAdmin(null)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl p-2 transition-all">
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-8 space-y-6 overflow-y-auto max-h-[65vh]">
+              {/* Status Badge */}
+              <div className="flex flex-wrap gap-2">
+                <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                  viewingAdmin.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                  : viewingAdmin.status === 'PENDING' ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                  : 'bg-red-100 text-red-700 border border-red-200'
+                }`}>
+                  <BadgeCheck size={13} />
+                  {viewingAdmin.status || 'ACTIVE'}
+                </span>
+                <span className="px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1.5">
+                  <Shield size={13} />
+                  {viewingAdmin.role}
+                </span>
+                <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${viewingAdmin.permissions?.canChangeTheme ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                  <Palette size={13} />
+                  Theme: {viewingAdmin.permissions?.canChangeTheme ? 'Enabled' : 'Locked'}
+                </span>
+              </div>
+
+              {/* Info Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { icon: <AtSign size={16} />, label: 'Username', value: viewingAdmin.username || '—' },
+                  { icon: <Mail size={16} />, label: 'Email', value: viewingAdmin.email },
+                  { icon: <Phone size={16} />, label: 'Phone', value: viewingAdmin.phone || '—' },
+                  { icon: <FileText size={16} />, label: 'PAN Number', value: viewingAdmin.panNumber || '—' },
+                  { icon: <Building2 size={16} />, label: 'Business Name', value: viewingAdmin.businessName || '—' },
+                  { icon: <Globe size={16} />, label: 'Assigned Sites', value: `${viewingAdmin.assignedSiteIds?.length || 0} site(s)` },
+                  { icon: <Calendar size={16} />, label: 'Registered', value: viewingAdmin.createdAt ? new Date(viewingAdmin.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
+                ].map(({ icon, label, value }) => (
+                  <div key={label} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-start gap-3">
+                    <div className="text-indigo-400 mt-0.5 shrink-0">{icon}</div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
+                      <p className="text-sm font-semibold text-slate-800 break-all">{value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* National ID Photo */}
+              {viewingAdmin.nationalIdPhoto && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">National ID Photo</p>
+                  <img
+                    src={viewingAdmin.nationalIdPhoto}
+                    alt="National ID"
+                    className="w-full rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setIdPhotoModal(viewingAdmin.nationalIdPhoto)}
+                  />
+                  <p className="text-xs text-slate-400 mt-2 text-center">Click to enlarge</p>
+                </div>
+              )}
+
+              {/* Rejection Reason */}
+              {viewingAdmin.rejectionReason && (
+                <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
+                  <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Rejection Reason</p>
+                  <p className="text-sm text-red-700 font-medium">{viewingAdmin.rejectionReason}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="border-t border-slate-100 p-6 flex gap-3 bg-slate-50/50">
+              <button
+                onClick={() => { setViewingAdmin(null); handleOpenModal(viewingAdmin); }}
+                className="flex-1 flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 transition-all"
+              >
+                <Edit2 size={16} /> Edit Account
+              </button>
+              <button
+                onClick={() => setViewingAdmin(null)}
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
