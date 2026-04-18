@@ -1,42 +1,98 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Phone, MessageCircle, MapPin, Search, ExternalLink, 
   Mail, PhoneCall, Globe, Music
 } from 'lucide-react';
 
 // Inline SVG social icons (not available in lucide-react v1.8)
-const FacebookIcon = ({ size = 18 }: { size?: number }) => (
-  <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24">
+const FacebookIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24" className={className}>
     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
   </svg>
 );
 
-const InstagramIcon = ({ size = 18 }: { size?: number }) => (
-  <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24">
+const InstagramIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24" className={className}>
     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
   </svg>
 );
 
-const XIcon = ({ size = 18 }: { size?: number }) => (
-  <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24">
+const XIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24" className={className}>
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.261 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z"/>
   </svg>
 );
 
-const MessengerIcon = ({ size = 18 }: { size?: number }) => (
-  <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24">
+const MessengerIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24" className={className}>
     <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.974 12-11.111C24 4.974 18.627 0 12 0zm1.291 14.392l-3.058-3.259-5.965 3.259 6.559-6.963 3.13 3.259 5.893-3.259-6.559 6.963z"/>
   </svg>
 );
 
 export default function PreviewSite({ site, isEditor = false }: { site: any, isEditor?: boolean }) {
   if (!site) return null;
+  const [messengerNotice, setMessengerNotice] = useState('');
 
   const { content, businessName, whatsappNumber, messengerUsername } = site;
-  const whatsappLink = whatsappNumber ? `https://wa.me/${whatsappNumber}?text=Hi, I would like to order...` : '#';
-  const messengerLink = messengerUsername ? `https://m.me/${messengerUsername.replace('@', '')}` : '#';
+
+  const normalizeMessengerHandle = (value: string) => {
+    const trimmed = value?.trim();
+    if (!trimmed) return '';
+
+    const withoutProtocol = trimmed.replace(/^https?:\/\//, '');
+    const withoutDomain = withoutProtocol.replace(/^(www\.)?(m\.me|messenger\.com|facebook\.com)\//, '');
+    const clean = withoutDomain
+      .replace(/^messages\/t\//, '')
+      .replace(/^@/, '')
+      .replace(/\?.*$/, '')
+      .replace(/\/+$/, '');
+
+    return clean;
+  };
+
+  const buildWhatsAppLink = (message: string) => {
+    if (!whatsappNumber) return '#';
+    return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+  };
+
+  const buildMessengerLink = (message: string) => {
+    const handle = normalizeMessengerHandle(messengerUsername || '');
+    if (!handle) return '#';
+
+    return `https://m.me/${handle}?ref=${encodeURIComponent(message)}`;
+  };
+
+  const whatsappLink = buildWhatsAppLink('Hi, I would like to order...');
+  const messengerLink = buildMessengerLink('Hi, I would like to order...');
+  const defaultOrderMessage = `Hi, I would like to order from ${businessName}.`;
+
+  const handleMessengerOrder = async (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    message: string
+  ) => {
+    const href = buildMessengerLink(message);
+    if (href === '#') {
+      event.preventDefault();
+      return;
+    }
+
+    event.preventDefault();
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(message);
+        setMessengerNotice('Order message copied. Paste it into Messenger.');
+        window.setTimeout(() => setMessengerNotice(''), 3000);
+      }
+    } catch {
+      setMessengerNotice('Messenger opened. If needed, paste your order details manually.');
+      window.setTimeout(() => setMessengerNotice(''), 3000);
+    }
+
+    window.open(href, '_blank', 'noopener,noreferrer');
+  };
   
   const getAnimClass = (customStyle?: string) => {
     const style = customStyle || site.animationStyle || 'reveal';
@@ -101,6 +157,12 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
         backgroundColor: 'var(--brand-bg)'
       }}
     >
+      {messengerNotice && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[70] rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-lg">
+          {messengerNotice}
+        </div>
+      )}
+
       {/* Dynamic Font Loading */}
       {(() => {
         const fonts = new Set([site.fontFamily || 'Inter']);
@@ -302,7 +364,7 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
                       <p className="font-bold text-brand-accent text-sm md:text-base mt-1.5 mb-3">{product.price}</p>
                       <div className="grid grid-cols-2 gap-2 mt-auto">
                         <a
-                          href={`https://wa.me/${whatsappNumber}?text=Hi, I am interested in ${product.name} (${product.price})`}
+                          href={buildWhatsAppLink(`Hi, I am interested in ${product.name} of ${product.price}`)}
                           target="_blank"
                           rel="noreferrer"
                           className="flex items-center justify-center bg-green-50 text-green-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-green-100 hover:bg-green-100"
@@ -311,7 +373,13 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
                           WhatsApp
                         </a>
                         <a
-                          href={messengerUsername ? `https://m.me/${messengerUsername.replace('@', '')}` : '#'}
+                          href={buildMessengerLink(`Hi, I am interested in ${product.name} of ${product.price}`)}
+                          onClick={(event) =>
+                            handleMessengerOrder(
+                              event,
+                              `Hi, I am interested in ${product.name} of ${product.price}`
+                            )
+                          }
                           target="_blank"
                           rel="noreferrer"
                           className="flex items-center justify-center bg-blue-50 text-blue-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-blue-100 hover:bg-blue-100"
@@ -477,6 +545,9 @@ export default function PreviewSite({ site, isEditor = false }: { site: any, isE
         {messengerUsername && (
           <a 
             href={messengerLink}
+            onClick={(event) =>
+              handleMessengerOrder(event, defaultOrderMessage)
+            }
             className="flex-1 pointer-events-auto h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl text-white font-bold text-xs"
           >
             <MessengerIcon size={18} className="mr-1.5" />
