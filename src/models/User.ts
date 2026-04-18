@@ -16,6 +16,13 @@ export interface IUser extends Document {
     canChangeTheme: boolean;
   };
   assignedSiteIds: string[];
+  pendingProfileChanges?: {
+    name?: string;
+    phone?: string;
+    panNumber?: string;
+    businessName?: string;
+    nationalIdPhoto?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +44,7 @@ const UserSchema = new Schema<IUser>(
       canChangeTheme: { type: Boolean, default: false },
     },
     assignedSiteIds: [{ type: String }],
+    pendingProfileChanges: { type: Schema.Types.Mixed },
   },
   { timestamps: true }
 );
