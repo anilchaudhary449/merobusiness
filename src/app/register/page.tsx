@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { COUNTRIES } from '@/lib/constants/countries';
 
 type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
@@ -252,15 +253,13 @@ export default function RegisterPage() {
                   <select 
                     value={form.countryCode}
                     onChange={e => setForm({...form, countryCode: e.target.value})}
-                    className="absolute inset-y-0 left-0 pl-10 pr-2 bg-slate-900 border border-slate-700 border-r-0 rounded-l-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 z-10 text-[11px] font-bold appearance-none w-20 cursor-pointer"
+                    className="absolute inset-y-0 left-0 pl-10 pr-2 bg-slate-900 border border-slate-700 border-r-0 rounded-l-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 z-10 text-[11px] font-bold appearance-none w-24 cursor-pointer"
                   >
-                    <option value="+977">+977</option>
-                    <option value="+91">+91</option>
-                    <option value="+1">+1</option>
-                    <option value="+44">+44</option>
-                    <option value="+61">+61</option>
-                    <option value="+971">+971</option>
-                    <option value="+974">+974</option>
+                    {COUNTRIES.map((c) => (
+                      <option key={`${c.code}-${c.dial_code}`} value={c.dial_code}>
+                        {c.flag} {c.dial_code}
+                      </option>
+                    ))}
                   </select>
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 z-20">
                     <Phone size={14} />
@@ -270,7 +269,7 @@ export default function RegisterPage() {
                     required
                     value={form.phone}
                     onChange={e => setForm({ ...form, phone: e.target.value.replace(/[^0-9]/g, '') })}
-                    className="block w-full pl-24 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium tracking-wide"
+                    className="block w-full pl-28 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium tracking-wide"
                     placeholder="98XXXXXXXX"
                   />
                 </div>
