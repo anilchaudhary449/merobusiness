@@ -14,31 +14,35 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
+        console.log("Auth attempt for:", credentials.email);
+        try {
+          await dbConnect();
+          const user = await User.findOne({ email: credentials.email.toLowerCase() });
+
+          if (!user || !user.password) {
+            console.warn("User not found:", credentials.email);
+            throw new Error("User not found or password not set");
+          }
+
+          const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
+
+          if (!isPasswordCorrect) {
+            console.warn("Invalid password for:", credentials.email);
+            throw new Error("Incorrect password");
+          }
+
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            role: user.role,
+            name: user.name,
+            permissions: user.permissions,
+            assignedSiteIds: user.assignedSiteIds,
+          };
+        } catch (error: any) {
+          console.error("NextAuth authorize error:", error);
+          throw error;
         }
-
-        await dbConnect();
-        const user = await User.findOne({ email: credentials.email.toLowerCase() });
-
-        if (!user || !user.password) {
-          throw new Error("User not found or password not set");
-        }
-
-        const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
-
-        if (!isPasswordCorrect) {
-          throw new Error("Incorrect password");
-        }
-
-        return {
-          id: user._id.toString(),
-          email: user.email,
-          role: user.role,
-          name: user.name,
-          permissions: user.permissions,
-          assignedSiteIds: user.assignedSiteIds,
-        };
       },
     }),
   ],
@@ -64,10 +68,12 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
+    error: "/login", // Redirect errors back to login with error params
   },
   session: {
     strategy: "jwt",
   },
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET,
 };
 
