@@ -3,9 +3,14 @@
 import React, { useState } from 'react';
 import { 
   Phone, MessageCircle, MapPin, Search, ExternalLink, 
-  Mail, PhoneCall, Globe, Music
+  Mail, PhoneCall, Globe, Music, Heart, Star, HelpCircle, 
+  User, PlusCircle, LogIn, ChevronRight, Send, Loader2,
+  Lock, CheckCircle2, XCircle, ArrowRight
 } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+import { toast } from 'sonner';
 import { getThemePreset } from '@/lib/theme-presets';
+import useSWR from 'swr';
 
 // Inline SVG social icons (not available in lucide-react v1.8)
 const FacebookIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
@@ -34,7 +39,73 @@ const MessengerIcon = ({ size = 18, className = '' }: { size?: number; className
 
 export default function PreviewSite({ site, ownerInfo, isEditor = false }: { site: any; ownerInfo?: any; isEditor?: boolean }) {
   if (!site) return null;
+  const { data: session } = useSession();
   const [messengerNotice, setMessengerNotice] = useState('');
+  const [activeProduct, setActiveProduct] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'reviews' | 'faqs'>('overview');
+  const [authModal, setAuthModal] = useState<'login' | 'register' | 'forgot' | null>(null);
+  
+  // Auth Form States
+  const [authForm, setAuthForm] = useState({
+    email: '', password: '', confirmPassword: '',
+    firstName: '', middleName: '', lastName: '', 
+    dob: '', countryCode: '+977', phone: ''
+  });
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
+
+  // Review State
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  
+  // Real-time Wishlist Data
+  const { data: wishlistData, mutate: mutateWishlist } = useSWR(
+    session?.user ? `/api/store/${site.slug || site._id}/wishlist` : null, 
+    fetcher
+  );
+
+  // Reviews & FAQs for Active Product
+  const { data: reviews, mutate: mutateReviews } = useSWR(
+    activeProduct ? `/api/store/${site.slug || site._id}/products/${activeProduct.id}/reviews` : null,
+    fetcher
+  );
+
+  const { data: faqs } = useSWR(
+    activeProduct ? `/api/store/${site.slug || site._id}/products/${activeProduct.id}/faqs` : null,
+    fetcher
+  );
+  
+  const wishlist = new Set(wishlistData?.map((w: any) => w.productId) || []);
+
+  const toggleWishlist = async (e: React.MouseEvent, productId: string) => {
+    e.stopPropagation();
+    if (!session) {
+      setAuthModal('login');
+      return;
+    }
+
+    const isAdded = wishlist.has(productId);
+    try {
+      if (isAdded) {
+        await fetch(`/api/store/${site.slug || site._id}/wishlist`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId })
+        });
+      } else {
+        await fetch(`/api/store/${site.slug || site._id}/wishlist`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId })
+        });
+      }
+      mutateWishlist();
+      toast.success(isAdded ? 'Removed from wishlist' : 'Added to wishlist');
+    } catch (err) {
+      toast.error('Failed to update wishlist');
+    }
+  };
 
   const { content, businessName, whatsappNumber, messengerUsername } = site;
   const activeTheme = getThemePreset(site.theme);
@@ -243,12 +314,90 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
         .btn-order-hover:hover .icon-accent {
           color: white !important;
         }
-        .theme-chip {
-          background: linear-gradient(135deg, rgba(var(--brand-primary-rgb), 0.18), rgba(var(--brand-primary-rgb), 0.04));
-          border: 1px solid rgba(var(--brand-primary-rgb), 0.22);
-          color: var(--brand-heading);
+        color: var(--brand-heading);
+        }
+
+        /* Modal Backdrop */
+        .modal-backdrop {
+          background-color: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(8px);
         }
       `}} />
+
+      {/* Auth Handlers */}
+      {(() => {
+        const handleAuthSubmit = async (e: React.FormEvent) => {
+          e.preventDefault();
+          setIsAuthSubmitting(true);
+          try {
+            if (authModal === 'register') {
+              const res = await fetch('/api/auth/customer-register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(authForm)
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error);
+              toast.success('Registration successful! Please log in.');
+              setAuthModal('login');
+            } else if (authModal === 'login') {
+              // Sign in logic via NextAuth
+              const res = await fetch('/api/auth/callback/credentials', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...authForm, redirect: false })
+              });
+              // Note: Since this is a preview inside a component, 
+              // we reload to get the new session
+              window.location.reload();
+            }
+          } catch (err: any) {
+            toast.error(err.message);
+          } finally {
+            setIsAuthSubmitting(false);
+          }
+        };
+
+        const handleForgotPassword = async (e: React.FormEvent) => {
+          e.preventDefault();
+          setIsAuthSubmitting(true);
+          try {
+            const res = await fetch('/api/auth/customer-forgot-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: authForm.email })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            toast.success(data.message);
+            setAuthModal('login');
+          } catch (err: any) {
+            toast.error(err.message);
+          } finally {
+            setIsAuthSubmitting(false);
+          }
+        };
+
+        const handleReviewSubmit = async (e: React.FormEvent) => {
+          e.preventDefault();
+          if (!session) { setAuthModal('login'); return; }
+          try {
+             const res = await fetch(`/api/store/${site.slug || site._id}/products/${activeProduct.id}/reviews`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rating: reviewRating, comment: reviewComment })
+             });
+             if (!res.ok) throw new Error('Failed to post review');
+             toast.success('Review posted successfully!');
+             setReviewComment('');
+             // mutateReviews(); // If I use SWR for reviews
+          } catch (err: any) {
+             toast.error(err.message);
+          }
+        };
+
+        return null;
+      })()}
 
       {/* Navigation */}
       <nav 
@@ -281,14 +430,28 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
           <a href="#about" className="hover:text-brand-accent transition-colors" style={{ color: 'inherit' }}>About</a>
         </div>
         <div className="flex items-center space-x-3">
-          {displayPhone && (
-            <a 
-              href={`tel:${displayPhone}`}
-              className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-gray-50 rounded-full text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+          {session?.user ? (
+            <div className="flex items-center gap-2 group relative">
+               <div className="hidden lg:block text-right">
+                  <p className="text-[10px] font-black uppercase text-slate-400">Welcome Back</p>
+                  <p className="text-xs font-bold text-slate-700">{session.user.name?.split(' ')[0]}</p>
+               </div>
+               <button 
+                 onClick={() => signOut()}
+                 className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-50 transition-all"
+                 title="Log Out"
+               >
+                 <LogOut size={18} />
+               </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setAuthModal('login')}
+              className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-full text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
             >
-              <PhoneCall size={14} className="text-brand-accent" />
-              <span>{displayPhone}</span>
-            </a>
+              <LogIn size={14} className="text-brand-accent" />
+              <span>Log In</span>
+            </button>
           )}
           <a 
             href={whatsappLink}
@@ -371,12 +534,24 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
                 {content.products.map((product: any) => (
                   <div key={product.id} className={`${themeCardClass} rounded-2xl overflow-hidden shadow-sm border group transition-all hover:shadow-md hover:-translate-y-1 flex flex-col h-full`}>
-                    <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
+                    <div 
+                      className="aspect-[4/5] overflow-hidden bg-gray-100 relative cursor-pointer"
+                      onClick={() => { setActiveProduct(product); setActiveTab('overview'); }}
+                    >
                       <img
                         src={product.imageUrl}
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
+                      <button 
+                        onClick={(e) => toggleWishlist(e, product.id)}
+                        className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all ${wishlist.has(product.id) ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'bg-white/80 backdrop-blur-md text-gray-400 hover:text-rose-500'}`}
+                      >
+                        <Heart size={16} fill={wishlist.has(product.id) ? "currentColor" : "none"} />
+                      </button>
+                      <div className="absolute bottom-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-lg text-[10px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        View Details
+                      </div>
                     </div>
                     <div className="p-3 md:p-4 flex flex-col flex-1">
                       <h3 className={`line-clamp-2 text-sm md:text-base leading-tight font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{product.name}</h3>
@@ -602,6 +777,339 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
           </a>
         )}
       </div>
+      </div>
+
+      {/* ─── Product Detail Modal ─── */}
+      {activeProduct && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 modal-backdrop" onClick={() => setActiveProduct(null)} />
+          <div className="relative w-full max-w-4xl bg-white rounded-[32px] overflow-hidden shadow-2xl flex flex-col md:flex-row h-[90vh] md:h-auto max-h-[90vh] animate-in slide-in-from-bottom-5 duration-300">
+            <button 
+              onClick={() => setActiveProduct(null)}
+              className="absolute top-4 right-4 z-20 p-2 bg-white/80 backdrop-blur-md rounded-full text-slate-400 hover:text-slate-900 shadow-sm transition-all"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Product Image */}
+            <div className="w-full md:w-1/2 h-64 md:h-auto overflow-hidden bg-slate-50 relative">
+               <img src={activeProduct.imageUrl} className="w-full h-full object-cover" alt={activeProduct.name} />
+               <div className="absolute top-4 left-4">
+                  <span className="px-3 py-1.5 bg-brand-accent text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-brand-accent/20">
+                     Official Model
+                  </span>
+               </div>
+            </div>
+
+            {/* Interaction Panel */}
+            <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col overflow-y-auto custom-scrollbar">
+               <div className="mb-6">
+                  <h2 className="text-2xl font-black text-slate-900 leading-tight mb-2">{activeProduct.name}</h2>
+                  <p className="text-xl font-bold text-brand-accent">{activeProduct.price}</p>
+               </div>
+
+               {/* Tabs */}
+               <div className="flex border-b border-slate-100 mb-6 sticky top-0 bg-white z-10">
+                  {['overview', 'reviews', 'faqs'].map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab as any)}
+                      className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === tab ? 'border-brand-accent text-brand-accent' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    >
+                      {tab}
+                      {tab === 'reviews' && reviews?.length > 0 && <span className="ml-1 text-[8px] opacity-60">({reviews.length})</span>}
+                    </button>
+                  ))}
+               </div>
+
+               <div className="flex-1">
+                  {activeTab === 'overview' && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-left-2">
+                       <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                          Enjoy premium quality with {activeProduct.name}. A masterpiece of design and functionality curated for our valued customers.
+                       </p>
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                             <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Authenticity</p>
+                             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                                <BadgeCheck size={14} className="text-emerald-500" /> Verified Item
+                             </div>
+                          </div>
+                          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                             <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Availability</p>
+                             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                                <Clock size={14} className="text-amber-500" /> Limited Stock
+                             </div>
+                          </div>
+                       </div>
+                       <div className="pt-6 border-t border-slate-50 flex gap-4">
+                          <button onClick={(e) => toggleWishlist(e, activeProduct.id)} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-xs border transition-all ${wishlist.has(activeProduct.id) ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
+                             <Heart size={16} fill={wishlist.has(activeProduct.id) ? "currentColor" : "none"} /> 
+                             {wishlist.has(activeProduct.id) ? 'Saved to Wishlist' : 'Add to Wishlist'}
+                          </button>
+                       </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'reviews' && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-left-2 pb-6">
+                       <form onSubmit={(e) => {
+                          const handleReviewSubmit = async (e: React.FormEvent) => {
+                            e.preventDefault();
+                            if (!session) { setAuthModal('login'); return; }
+                            try {
+                               const res = await fetch(`/api/store/${site.slug || site._id}/products/${activeProduct.id}/reviews`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ rating: reviewRating, comment: reviewComment })
+                               });
+                               const data = await res.json();
+                               if (!res.ok) throw new Error(data.error);
+                               toast.success('Review posted successfully!');
+                               setReviewComment('');
+                               mutateReviews();
+                            } catch (err: any) {
+                               toast.error(err.message);
+                            }
+                          };
+                          handleReviewSubmit(e);
+                       }} className="p-4 bg-slate-900 rounded-[28px] text-white">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Leave a Review</p>
+                          <div className="flex gap-2 mb-4">
+                             {[1, 2, 3, 4, 5].map(star => (
+                               <button 
+                                 key={star} 
+                                 type="button" 
+                                 onClick={() => setReviewRating(star)}
+                                 className={`transition-all ${reviewRating >= star ? 'text-amber-400 scale-110' : 'text-slate-700'}`}
+                               >
+                                 <Star size={20} fill={reviewRating >= star ? 'currentColor' : 'none'} />
+                               </button>
+                             ))}
+                          </div>
+                          <textarea 
+                            value={reviewComment}
+                            onChange={(e) => setReviewComment(e.target.value)}
+                            required
+                            placeholder="Share your experience..." 
+                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs focus:ring-2 focus:ring-brand-accent outline-none mb-3 min-h-[80px]"
+                          />
+                          <button className="w-full py-2.5 bg-brand-accent text-white font-bold text-xs rounded-xl shadow-lg shadow-brand-accent/20 flex items-center justify-center gap-2">
+                             <Send size={14} /> Submit Review
+                          </button>
+                       </form>
+
+                       <div className="space-y-4">
+                          {reviews?.length === 0 && <p className="text-center text-slate-400 text-xs py-10 font-bold uppercase tracking-widest">No reviews yet</p>}
+                          {reviews?.map((review: any) => (
+                            <div key={review._id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                               <div className="flex items-center justify-between mb-2">
+                                  <p className="text-xs font-bold text-slate-900">{review.userId?.name || 'Anonymous'}</p>
+                                  <div className="flex gap-0.5">
+                                     {[...Array(5)].map((_, i) => (
+                                       <Star key={i} size={10} fill={i < review.rating ? 'currentColor' : 'none'} className={i < review.rating ? 'text-amber-500' : 'text-slate-300'} />
+                                     ))}
+                                  </div>
+                               </div>
+                               <p className="text-xs text-slate-600 italic leading-relaxed">"{review.comment}"</p>
+                            </div>
+                          ))}
+                       </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'faqs' && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-left-2">
+                       {faqs?.length === 0 && (
+                          <div className="text-center py-20 text-slate-400">
+                             <HelpCircle size={40} className="mx-auto mb-4 opacity-20" />
+                             <p className="text-xs font-black uppercase tracking-widest">No FAQs for this product</p>
+                          </div>
+                       )}
+                       {faqs?.map((faq: any) => (
+                         <div key={faq._id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <h4 className="text-xs font-black text-slate-900 mb-2 flex items-start gap-2">
+                               <MessageCircle size={14} className="text-brand-accent shrink-0 mt-0.5" />
+                               {faq.question}
+                            </h4>
+                            <p className="text-xs text-slate-600 pl-6 leading-relaxed border-l-2 border-slate-200 ml-1.5">
+                               {faq.answer}
+                            </p>
+                         </div>
+                       ))}
+                    </div>
+                  )}
+               </div>
+
+               <div className="mt-8 pt-6 border-t border-slate-100 flex gap-3">
+                  <a 
+                    href={buildWhatsAppLink(`Hi, I want to order ${activeProduct.name} for ${activeProduct.price}`)}
+                    target="_blank" rel="noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 py-4 bg-emerald-600 text-white font-bold text-sm rounded-2xl shadow-xl shadow-emerald-600/20 hover:scale-105 transition-all"
+                  >
+                    <MessageCircle size={18} />
+                    Buy via WhatsApp
+                  </a>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Auth Modals (Login/Register) ─── */}
+      {authModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 modal-backdrop" onClick={() => setAuthModal(null)} />
+          <div className="relative w-full max-w-md bg-white rounded-[40px] overflow-hidden shadow-2xl p-8 md:p-10 animate-in scale-in-95 duration-200">
+             <button onClick={() => setAuthModal(null)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 transition-all">
+                <X size={20} />
+             </button>
+
+             <div className="text-center mb-10">
+                <div className="w-16 h-16 rounded-3xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mx-auto mb-4">
+                   {authModal === 'login' ? <Lock size={28} /> : authModal === 'register' ? <User size={28} /> : <AtSign size={28} />}
+                </div>
+                <h3 className="text-2xl font-black text-slate-900">
+                   {authModal === 'login' ? 'Welcome Back' : authModal === 'register' ? 'Join the Store' : 'Reset Password'}
+                </h3>
+                <p className="text-sm text-slate-500 mt-2 font-medium">
+                   {authModal === 'login' ? 'Sign in to access your wishlist and reviews' : authModal === 'register' ? 'Create an account to track your orders' : 'Enter your email to request a reset'}
+                </p>
+             </div>
+
+             <form onSubmit={(e) => {
+                const handleAuthSubmit = async (e: React.FormEvent) => {
+                  e.preventDefault();
+                  setIsAuthSubmitting(true);
+                  try {
+                    if (authModal === 'register') {
+                      const res = await fetch('/api/auth/customer-register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(authForm)
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error);
+                      toast.success('Registration successful! Please log in.');
+                      setAuthModal('login');
+                    } else if (authModal === 'login') {
+                      const res = await fetch('/api/auth/callback/credentials', { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: authForm.email, password: authForm.password, redirect: false })
+                      });
+                      window.location.reload();
+                    } else {
+                       const res = await fetch('/api/auth/customer-forgot-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: authForm.email })
+                       });
+                       const data = await res.json();
+                       if (!res.ok) throw new Error(data.error);
+                       toast.success(data.message);
+                       setAuthModal('login');
+                    }
+                  } catch (err: any) {
+                    toast.error(err.message);
+                  } finally {
+                    setIsAuthSubmitting(false);
+                  }
+                };
+                handleAuthSubmit(e);
+             }} className="space-y-4">
+                {authModal === 'register' && (
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</label>
+                        <input required type="text" value={authForm.firstName} onChange={e => setAuthForm({...authForm, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
+                     </div>
+                     <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</label>
+                        <input required type="text" value={authForm.lastName} onChange={e => setAuthForm({...authForm, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
+                     </div>
+                  </div>
+                )}
+                
+                <div className="space-y-1">
+                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Gmail Address</label>
+                   <div className="relative group">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
+                      <input required type="email" value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} placeholder="yourname@gmail.com" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
+                   </div>
+                </div>
+
+                {authModal === 'register' && (
+                  <>
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Date of Birth (16+ Required)</label>
+                       <div className="relative group">
+                          <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input required type="date" value={authForm.dob} onChange={e => setAuthForm({...authForm, dob: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
+                       </div>
+                    </div>
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Mobile Number</label>
+                       <div className="relative group">
+                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input required type="tel" value={authForm.phone} onChange={e => setAuthForm({...authForm, phone: e.target.value})} placeholder="+977 98XXXXXXX" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
+                       </div>
+                    </div>
+                  </>
+                )}
+
+                {authModal !== 'forgot' && (
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Password</label>
+                     <div className="relative group">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input required type="password" value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} placeholder="••••••••" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold" />
+                     </div>
+                  </div>
+                )}
+
+                {authModal === 'register' && (
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm Password</label>
+                     <input required type="password" value={authForm.confirmPassword} onChange={e => setAuthForm({...authForm, confirmPassword: e.target.value})} placeholder="••••••••" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 text-sm font-bold outline-none" />
+                  </div>
+                )}
+
+                {authModal === 'login' && (
+                   <div className="text-right">
+                      <button type="button" onClick={() => setAuthModal('forgot')} className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors">
+                         Forgot Password?
+                      </button>
+                   </div>
+                )}
+
+                <button 
+                  disabled={isAuthSubmitting}
+                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-xl shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 mt-4"
+                >
+                   {isAuthSubmitting ? <Loader2 className="animate-spin" size={20} /> : (
+                     <>
+                        <span>{authModal === 'login' ? 'Secure Login' : authModal === 'register' ? 'Create Account' : 'Request Password Reset'}</span>
+                        <ArrowRight size={18} />
+                     </>
+                   )}
+                </button>
+             </form>
+
+             <div className="text-center mt-10 pt-6 border-t border-slate-50">
+                <p className="text-xs font-bold text-slate-500">
+                   {authModal === 'login' ? "New to the store?" : "Already have an account?"}{' '}
+                   <button 
+                     onClick={() => setAuthModal(authModal === 'login' ? 'register' : 'login')}
+                     className="text-indigo-600 hover:underline"
+                   >
+                     {authModal === 'login' ? 'Join Now' : 'Sign In'}
+                   </button>
+                </p>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
