@@ -126,7 +126,13 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center mt-8 text-slate-500 text-sm">
+        <p className="text-center mt-6 text-slate-500 text-sm">
+          New admin?{' '}
+          <a href="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
+            Register here
+          </a>
+        </p>
+        <p className="text-center mt-2 text-slate-600 text-xs">
           System access restricted to authorized personnel only.
         </p>
       </div>
