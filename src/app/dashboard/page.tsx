@@ -19,6 +19,7 @@ import { THEME_PRESETS, getThemePreset } from '@/lib/theme-presets';
 import { PREPARED_QUESTIONS, FAQ_TRIGGER_PREFIX } from '@/lib/constants/support';
 import { COUNTRIES } from '@/lib/constants/countries';
 import { isValidPhoneNumber } from 'libphonenumber-js';
+import { CountrySelector } from '@/components/CountrySelector';
 
 const fetcher = (url: string) => fetch(url).then(async (res) => {
   const data = await res.json();
@@ -734,29 +735,29 @@ export default function Dashboard() {
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5 ml-1">Phone Number</label>
-                  <div className="relative flex">
-                    <select 
-                      value={profileFormData.countryCode}
-                      onChange={e => setProfileFormData({...profileFormData, countryCode: e.target.value})}
-                      className="absolute inset-y-0 left-0 pl-3 pr-2 bg-slate-100 border border-slate-200 border-r-0 rounded-l-2xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 z-10 text-[11px] font-bold appearance-none w-24 cursor-pointer"
-                    >
-                      {COUNTRIES.map((c) => (
-                        <option key={`${c.code}-${c.dial_code}`} value={c.dial_code}>
-                          {c.flag} {c.dial_code}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="relative flex gap-3">
+                    <div className="w-24 shrink-0">
+                      <CountrySelector 
+                        value={profileFormData.countryCode}
+                        onChange={(code) => setProfileFormData({...profileFormData, countryCode: code})}
+                      />
+                    </div>
                     <input 
                       type="tel" 
                       value={profileFormData.phone} 
                       onChange={e => setProfileFormData({...profileFormData, phone: e.target.value.replace(/[^0-9]/g, '')})} 
-                      className="w-full pl-28 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" 
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" 
                       placeholder="98XXXXXXXX" 
                     />
                   </div>
                   {phoneStatus.show && (
                     <div className={`mt-2 ml-1 flex items-center gap-2 text-[10px] font-bold transition-all duration-300 animate-in fade-in slide-in-from-top-1 ${phoneStatus.isValid ? 'text-emerald-600' : 'text-rose-500'}`}>
                       {phoneStatus.isValid ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                      <img 
+                        src={`https://flagcdn.com/w40/${COUNTRIES.find(c => c.dial_code === profileFormData.countryCode)?.code.toLowerCase()}.png`} 
+                        className="w-4 h-auto rounded-[2px] shadow-sm ml-1"
+                        alt="country flag"
+                      />
                       <span className="tracking-widest uppercase">{phoneStatus.message}</span>
                     </div>
                   )}

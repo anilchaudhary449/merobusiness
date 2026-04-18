@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { COUNTRIES } from '@/lib/constants/countries';
 import { isValidPhoneNumber } from 'libphonenumber-js';
+import { CountrySelector } from '@/components/CountrySelector';
 
 type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
@@ -289,33 +290,30 @@ export default function RegisterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phone / Mobile</label>
-                <div className="relative flex">
-                  <select 
-                    value={form.countryCode}
-                    onChange={e => setForm({...form, countryCode: e.target.value})}
-                    className="absolute inset-y-0 left-0 pl-10 pr-2 bg-slate-900 border border-slate-700 border-r-0 rounded-l-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 z-10 text-[11px] font-bold appearance-none w-24 cursor-pointer"
-                  >
-                    {COUNTRIES.map((c) => (
-                      <option key={`${c.code}-${c.dial_code}`} value={c.dial_code}>
-                        {c.flag} {c.dial_code}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 z-20">
-                    <Phone size={14} />
+                <div className="relative flex gap-3">
+                  <div className="w-28 shrink-0">
+                    <CountrySelector 
+                      value={form.countryCode}
+                      onChange={(code) => setForm({...form, countryCode: code})}
+                    />
                   </div>
                   <input
                     type="tel"
                     required
                     value={form.phone}
-                    onChange={e => setForm({ ...form, phone: e.target.value.replace(/[^0-9]/g, '') })}
-                    className="block w-full pl-28 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium tracking-wide"
+                    onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^0-9]/g, '') })}
+                    className="block w-full px-4 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium tracking-wide"
                     placeholder="98XXXXXXXX"
                   />
                 </div>
                 {phoneStatus.show && (
                   <div className={`mt-2 ml-1 flex items-center gap-2 text-[11px] font-bold transition-all duration-300 animate-in fade-in slide-in-from-top-1 ${phoneStatus.isValid ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {phoneStatus.isValid ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                    <img 
+                      src={`https://flagcdn.com/w40/${COUNTRIES.find(c => c.dial_code === form.countryCode)?.code.toLowerCase()}.png`} 
+                      className="w-4 h-auto rounded-[2px] shadow-sm ml-1"
+                      alt="country flag"
+                    />
                     <span className="tracking-wide uppercase">{phoneStatus.message}</span>
                   </div>
                 )}
