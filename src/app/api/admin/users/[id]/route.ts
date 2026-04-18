@@ -13,7 +13,7 @@ async function getSuperAdminSession() {
   return session;
 }
 
-// PATCH: Update an Admin
+// PATCH: Update an Admin (Super-Admin can update any field)
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSuperAdminSession();
   if (!session) {
@@ -26,12 +26,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const data = await req.json();
     await dbConnect();
 
-    const updateData: any = { ...data };
-    if (updateData.password) {
-      updateData.password = await bcrypt.hash(updateData.password, 12);
-    } else {
-      delete updateData.password;
+    // Build safe update object with all allowed fields
+    const allowedFields = ['name', 'email', 'username', 'phone', 'panNumber', 'businessName', 
+      'nationalIdPhoto', 'permissions', 'assignedSiteIds', 'status', 'rejectionReason'];
+    
+    const updateData: any = {};
+    for (const field of allowedFields) {
+      if (data[field] !== undefined) updateData[field] = data[field];
     }
+
+    // Hash password only if provided
+    if (data.password) {
+      updateData.password = await bcrypt.hash(data.password, 12);
+    }
+
+    // Clear pending changes if super-admin is doing a direct edit
+    updateData.pendingChanges = null;
 
     const user = await User.findByIdAndUpdate(id, updateData, { new: true }).select('-password');
     if (!user) {
