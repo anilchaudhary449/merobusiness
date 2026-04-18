@@ -8,8 +8,11 @@ export interface IOrder extends Document {
     name: string;
     price: string;
     imageUrl?: string;
+    quantity?: number;
   };
   method: 'WHATSAPP' | 'MESSENGER';
+  status: 'PLACED' | 'CONFIRMED' | 'PACKED' | 'PICKED' | 'SHIPPED' | 'ON_THE_WAY' | 'DELIVERED' | 'CANCELLED';
+  paymentMethod: 'COD' | 'ONLINE_PAYMENT';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,8 +26,19 @@ const OrderSchema = new Schema<IOrder>(
       name: { type: String, required: true },
       price: { type: String, required: true },
       imageUrl: { type: String },
+      quantity: { type: Number, default: 1 },
     },
     method: { type: String, enum: ['WHATSAPP', 'MESSENGER'], required: true },
+    status: { 
+      type: String, 
+      enum: ['PLACED', 'CONFIRMED', 'PACKED', 'PICKED', 'SHIPPED', 'ON_THE_WAY', 'DELIVERED', 'CANCELLED'], 
+      default: 'PLACED' 
+    },
+    paymentMethod: { 
+      type: String, 
+      enum: ['COD', 'ONLINE_PAYMENT'], 
+      default: 'COD' 
+    },
   },
   { timestamps: true }
 );

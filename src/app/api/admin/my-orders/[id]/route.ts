@@ -6,7 +6,10 @@ import User from "@/models/User";
 import Website from "@/models/Website";
 import Order from "@/models/Order";
 
-export async function GET(req: Request) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -18,38 +21,42 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await dbConnect();
-
     const adminUser = await User.findOne({ email });
     if (!adminUser) {
       return NextResponse.json({ error: "Admin account not found" }, { status: 404 });
     }
 
-    let mySiteIds: string[] = [];
+    const body = await req.json();
+    const { status, paymentMethod } = body;
+    const { id } = await params;
 
-    if (role === "SUPER_ADMIN") {
-      const allSites = await Website.find({}, '_id');
-      mySiteIds = allSites.map(s => s._id.toString());
-    } else {
+    await dbConnect();
+
+    // Verify the order exists and the admin has permission to modify it
+    const order = await Order.findById(id);
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    if (role !== "SUPER_ADMIN") {
       const ownedSites = await Website.find({ userId: adminUser._id.toString() }, '_id');
       const ownedSiteIds = ownedSites.map(s => s._id.toString());
-      mySiteIds = Array.from(new Set([...ownedSiteIds, ...(adminUser.assignedSiteIds || [])]));
+      const mySiteIds = Array.from(new Set([...ownedSiteIds, ...(adminUser.assignedSiteIds || [])]));
+      
+      if (!mySiteIds.includes(order.siteId)) {
+         return NextResponse.json({ error: "Forbidden: You don't manage this store" }, { status: 403 });
+      }
     }
 
-    if (mySiteIds.length === 0) {
-      return NextResponse.json({ orders: [] }, { status: 200 });
-    }
+    if (status) order.status = status;
+    if (paymentMethod) order.paymentMethod = paymentMethod;
 
-    // Find all orders tied to the admin's sites, populated with customer details
-    const orders = await Order.find({
-      siteId: { $in: mySiteIds }
-    })
-    .populate('customerId', 'name email phone deliveryAddress username mapLocation')
-    .sort({ createdAt: -1 });
+    await order.save();
 
-    return NextResponse.json({ orders }, { status: 200 });
+    return NextResponse.json({ success: true, order }, { status: 200 });
+
   } catch (error: any) {
-    console.error("Fetch my orders error:", error);
+    console.error("Order modification error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

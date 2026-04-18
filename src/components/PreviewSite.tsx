@@ -6,7 +6,7 @@ import {
   Mail, PhoneCall, Globe, Music, Heart, Star, HelpCircle, 
   User, PlusCircle, LogIn, ChevronRight, Send, Loader2,
   Lock, CheckCircle2, XCircle, ArrowRight, LogOut,
-  BadgeCheck, Clock, X, AtSign, Calendar
+  BadgeCheck, Clock, X, AtSign, Calendar, Package, Settings
 } from 'lucide-react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -46,6 +46,7 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
   const [activeTab, setActiveTab] = useState<'overview' | 'reviews' | 'faqs'>('overview');
   const [authModal, setAuthModal] = useState<'login' | 'register' | 'forgot' | null>(null);
   const [profileModal, setProfileModal] = useState(false);
+  const [profileActiveTab, setProfileActiveTab] = useState<'info' | 'orders'>('info');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [profileForm, setProfileForm] = useState({
     firstName: '', middleName: '', lastName: '', phone: '',
@@ -72,6 +73,12 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
   // Customer own profile data
   const { data: customerProfile, mutate: mutateProfile } = useSWR(
     session?.user ? '/api/store/customer/profile' : null,
+    fetcher
+  );
+
+  // Customer own order history
+  const { data: customerOrdersData, isLoading: isLoadingCustomerOrders } = useSWR(
+    profileModal && session?.user ? '/api/store/customer/orders' : null,
     fetcher
   );
 
@@ -1212,9 +1219,25 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                   <User size={28} />
                 </div>
                 <h3 className="text-2xl font-black text-slate-900">My Profile</h3>
-                <p className="text-sm text-slate-500 mt-1 font-medium">Update your personal information</p>
+                <p className="text-sm text-slate-500 mt-1 font-medium">Manage your settings and orders</p>
               </div>
 
+              <div className="flex bg-slate-50 p-1.5 rounded-2xl mb-8 border border-slate-100">
+                <button 
+                  onClick={() => setProfileActiveTab('info')} 
+                  className={`flex-1 py-2.5 text-xs uppercase tracking-widest font-black rounded-xl transition-all flex items-center justify-center gap-2 ${profileActiveTab === 'info' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <Settings size={14} /> Details
+                </button>
+                <button 
+                  onClick={() => setProfileActiveTab('orders')} 
+                  className={`flex-1 py-2.5 text-xs uppercase tracking-widest font-black rounded-xl transition-all flex items-center justify-center gap-2 ${profileActiveTab === 'orders' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <Package size={14} /> Orders
+                </button>
+              </div>
+
+              {profileActiveTab === 'info' && (
               <form onSubmit={handleProfileSave} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
@@ -1353,6 +1376,53 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                   )}
                 </button>
               </form>
+              )}
+
+              {profileActiveTab === 'orders' && (
+                <div className="space-y-4">
+                  {isLoadingCustomerOrders ? (
+                    <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-indigo-500" /></div>
+                  ) : !customerOrdersData?.orders?.length ? (
+                    <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
+                      <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400"><Package size={24} /></div>
+                      <p className="text-sm font-bold text-slate-500">No recent orders found</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {customerOrdersData.orders.map((o: any) => (
+                        <div key={o._id} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm space-y-3">
+                          <div className="flex items-center justify-between pb-3 border-b border-slate-50">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{new Date(o.createdAt).toLocaleDateString()}</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${
+                              o.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                              o.status === 'CANCELLED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                              o.status === 'SHIPPED' || o.status === 'ON_THE_WAY' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                              'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {o.status.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            {o.product?.imageUrl ? (
+                              <img src={o.product.imageUrl} alt="img" className="w-12 h-12 object-cover rounded-xl shadow-sm" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-slate-900 truncate">{o.product?.name || 'Unknown Item'}</p>
+                              <p className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mt-0.5 inline-block pr-1"><span className="text-slate-400">QTY:</span> {o.product?.quantity || 1} • {o.paymentMethod.replace(/_/g, ' ')}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs font-black text-indigo-600 block">{o.product?.price}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="mt-6 pt-4 border-t border-slate-50">
                 <button

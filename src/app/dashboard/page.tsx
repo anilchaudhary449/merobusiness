@@ -5,13 +5,14 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import useSWR from 'swr';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createWebsiteSchema, CreateWebsiteInput } from '@/lib/validations/website';
 import { 
   PlusCircle, Link as LinkIcon, Settings, Globe, AlertCircle, 
   Trash2, ToggleLeft, ToggleRight, Palette, LogOut, ShieldCheck,
-  LayoutDashboard, Loader2, UserCog, X, Mail, Phone, User as UserIcon, Send, MessageSquare, CheckCircle2, XCircle, ShoppingCart, Users
+  LayoutDashboard, Loader2, UserCog, X, Mail, Phone, User as UserIcon, Send, MessageSquare, CheckCircle2, XCircle, ShoppingCart, Users, ChevronRight
 } from 'lucide-react';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { toast } from 'sonner';
@@ -36,9 +37,10 @@ export default function Dashboard() {
   
   // CRM & Orders
   const { data: customersData, isLoading: isLoadingCustomers } = useSWR('/api/admin/my-customers', fetcher);
-  const { data: ordersData, isLoading: isLoadingOrders } = useSWR('/api/admin/my-orders', fetcher);
+  const { data: ordersData, isLoading: isLoadingOrders, mutate: mutateOrders } = useSWR('/api/admin/my-orders', fetcher);
 
   const [activeTab, setActiveTab] = useState<'stores' | 'customers' | 'orders'>('stores');
+  const [expandedCustomerIds, setExpandedCustomerIds] = useState<string[]>([]);
   
   // Support Chat SWR
   const { data: supportTicket, mutate: mutateSupport } = useSWR(
@@ -164,14 +166,35 @@ export default function Dashboard() {
 
     try {
       const res = await fetch(`/api/websites/${site._id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedSite),
+        body: JSON.stringify({ theme: updatedSite.theme, ...updatedSite }),
       });
       if (!res.ok) throw new Error('Theme update failed');
-      toast.success(`${site.businessName} theme updated`);
+      toast.success('Theme applied to store!');
     } catch (err: any) {
       mutate();
+      toast.error(err.message);
+    }
+  };
+
+  const updateOrderStatus = async (orderId: string, field: 'status' | 'paymentMethod', value: string) => {
+    // Optimistic update
+    mutateOrders(
+      { ...ordersData, orders: ordersData.orders.map((o: any) => o._id === orderId ? { ...o, [field]: value } : o) },
+      false
+    );
+    try {
+      const res = await fetch(`/api/admin/my-orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (!res.ok) throw new Error('Failed to update order');
+      toast.success(`Order updated successfully`);
+      mutateOrders();
+    } catch (err: any) {
+      mutateOrders();
       toast.error(err.message);
     }
   };
@@ -731,19 +754,54 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-sm">
-                    {customersData.customers.map((c: any) => (
-                      <tr key={c._id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-4 px-4 font-bold text-slate-800">{c.name || 'N/A'}</td>
-                        <td className="py-4 px-4 text-slate-600 font-medium">{c.email}</td>
-                        <td className="py-4 px-4 text-slate-600">{c.phone || '-'}</td>
-                        <td className="py-4 px-4 text-slate-600 max-w-xs truncate" title={c.deliveryAddress}>
-                          {c.deliveryAddress || '-'}
-                        </td>
-                        <td className="py-4 px-4 text-slate-500 text-xs font-medium">
-                          {new Date(c.createdAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
+                    {customersData.customers.map((c: any) => {
+                      const isExpanded = expandedCustomerIds.includes(c._id);
+                      return (
+                        <React.Fragment key={c._id}>
+                          <tr className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setExpandedCustomerIds(prev => isExpanded ? prev.filter(id => id !== c._id) : [...prev, c._id])}>
+                            <td className="py-4 px-4 font-bold text-slate-800">
+                              <div className="flex items-center gap-2">
+                                <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}><ChevronRight size={16} className="text-slate-400" /></div>
+                                {c.name || 'N/A'}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 text-slate-600 font-medium">{c.email}</td>
+                            <td className="py-4 px-4 text-slate-600">{c.phone || '-'}</td>
+                            <td className="py-4 px-4 text-slate-600 max-w-xs truncate" title={c.deliveryAddress}>
+                              {c.deliveryAddress || '-'}
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-bold rounded-lg text-xs">{c.orders?.length || 0} Orders</span>
+                            </td>
+                          </tr>
+                          {isExpanded && c.orders?.length > 0 && (
+                            <tr className="bg-slate-50/50">
+                              <td colSpan={5} className="py-4 px-10">
+                                <div className="space-y-3">
+                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Order History</h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {c.orders.map((o: any) => (
+                                      <div key={o._id} className="bg-white border border-slate-100 rounded-xl p-3 flex items-center gap-3">
+                                        {o.product?.imageUrl ? (
+                                          <img src={o.product.imageUrl} alt="img" className="w-10 h-10 object-cover rounded-lg shadow-sm" />
+                                        ) : (
+                                          <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200" />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-bold text-slate-800 truncate">{o.product?.name || 'Unknown Item'}</p>
+                                          <p className="text-[10px] text-slate-400 font-medium">{new Date(o.createdAt).toLocaleDateString()} • Qty: {o.product?.quantity || 1}</p>
+                                        </div>
+                                        <span className="text-xs font-bold text-emerald-600">{o.product?.price}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -774,7 +832,8 @@ export default function Dashboard() {
                       <th className="py-4 px-4 font-bold">Product Ordered</th>
                       <th className="py-4 px-4 font-bold text-right">Price</th>
                       <th className="py-4 px-4 font-bold">Customer</th>
-                      <th className="py-4 px-4 font-bold">Method</th>
+                      <th className="py-4 px-4 font-bold">Payment</th>
+                      <th className="py-4 px-4 font-bold">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-sm">
@@ -790,7 +849,10 @@ export default function Dashboard() {
                             ) : (
                               <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200"></div>
                             )}
-                            <span className="font-bold text-slate-800">{o.product?.name || 'Unknown Item'}</span>
+                            <div>
+                               <span className="font-bold text-slate-800 line-clamp-1">{o.product?.name || 'Unknown Item'}</span>
+                               <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded mt-0.5 inline-block pr-1"><span className="text-slate-300">QTY:</span> {o.product?.quantity || 1} • {o.method}</span>
+                            </div>
                           </div>
                         </td>
                         <td className="py-4 px-4 text-right">
@@ -799,15 +861,39 @@ export default function Dashboard() {
                           </span>
                         </td>
                         <td className="py-4 px-4">
-                          <p className="font-bold text-slate-800">{o.customerId?.name || 'Guest'}</p>
-                          <p className="text-[10px] text-slate-500 font-medium truncate w-32" title={o.customerId?.email}>{o.customerId?.email}</p>
+                          <p className="font-bold text-slate-800 max-w-[120px] truncate">{o.customerId?.name || 'Guest'}</p>
+                          <p className="text-[10px] text-slate-500 font-medium max-w-[120px] truncate" title={o.customerId?.email}>{o.customerId?.email}</p>
                         </td>
                         <td className="py-4 px-4">
-                          <span className={`inline-block px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-md border ${
-                            o.method === 'WHATSAPP' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'
-                          }`}>
-                            {o.method}
-                          </span>
+                          <select
+                            value={o.paymentMethod || 'COD'}
+                            onChange={(e) => updateOrderStatus(o._id, 'paymentMethod', e.target.value)}
+                            className="bg-slate-50 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer w-28"
+                          >
+                            <option value="COD">Cash on Delivery</option>
+                            <option value="ONLINE_PAYMENT">Online Payment</option>
+                          </select>
+                        </td>
+                        <td className="py-4 px-4">
+                          <select
+                            value={o.status || 'PLACED'}
+                            onChange={(e) => updateOrderStatus(o._id, 'status', e.target.value)}
+                            className={`border text-[11px] font-bold rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 w-28 cursor-pointer ${
+                              o.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                              o.status === 'CANCELLED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                              o.status === 'SHIPPED' || o.status === 'ON_THE_WAY' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                              'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}
+                          >
+                            <option value="PLACED">Placed</option>
+                            <option value="CONFIRMED">Confirmed</option>
+                            <option value="PACKED">Packed</option>
+                            <option value="PICKED">Picked</option>
+                            <option value="SHIPPED">Shipped</option>
+                            <option value="ON_THE_WAY">On The Way</option>
+                            <option value="DELIVERED">Delivered</option>
+                            <option value="CANCELLED">Cancelled</option>
+                          </select>
                         </td>
                       </tr>
                     ))}

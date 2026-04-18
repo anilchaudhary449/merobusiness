@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { dbConnect } from "@/lib/mongoose";
 import User from "@/models/User";
 import Website from "@/models/Website";
+import Order from "@/models/Order";
 
 export async function GET(req: Request) {
   try {
@@ -28,12 +29,13 @@ export async function GET(req: Request) {
     let mySiteIds: string[] = [];
 
     if (role === "SUPER_ADMIN") {
-      // Super admins could potentially see all, but here this API is specifically for an admin's OWN customers based on stores.
-      // If Super-Admin wants to see everything, they have a different dashboard, but here they might want to see customers across all sites.
       const allSites = await Website.find({}, '_id');
       mySiteIds = allSites.map(s => s._id.toString());
     } else {
-      mySiteIds = adminUser.assignedSiteIds || [];
+      // Admins manage sites they own (userId) and any sites manually assigned to them (assignedSiteIds)
+      const ownedSites = await Website.find({ userId: adminUser._id.toString() }, '_id');
+      const ownedSiteIds = ownedSites.map(s => s._id.toString());
+      mySiteIds = Array.from(new Set([...ownedSiteIds, ...(adminUser.assignedSiteIds || [])]));
     }
 
     if (mySiteIds.length === 0) {
@@ -44,9 +46,19 @@ export async function GET(req: Request) {
     const customers = await User.find({
       role: 'CUSTOMER',
       assignedSiteIds: { $in: mySiteIds }
-    }).select('-password').sort({ createdAt: -1 });
+    }).select('-password').sort({ createdAt: -1 }).lean();
 
-    return NextResponse.json({ customers }, { status: 200 });
+    // Fetch all orders tied to these admin's sites to map them
+    const allRelevantOrders = await Order.find({
+      siteId: { $in: mySiteIds }
+    }).lean();
+
+    const customersWithOrders = customers.map((c: any) => ({
+      ...c,
+      orders: allRelevantOrders.filter((o: any) => o.customerId.toString() === c._id.toString())
+    }));
+
+    return NextResponse.json({ customers: customersWithOrders }, { status: 200 });
   } catch (error: any) {
     console.error("Fetch my customers error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
