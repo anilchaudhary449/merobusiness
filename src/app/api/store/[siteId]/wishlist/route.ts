@@ -40,7 +40,7 @@ export async function POST(
     const item = await Wishlist.findOneAndUpdate(
       { userId: (session.user as any).id, siteId, productId },
       { userId: (session.user as any).id, siteId, productId },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     return NextResponse.json(item);

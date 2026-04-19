@@ -26,31 +26,40 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Admin account not found" }, { status: 404 });
     }
 
-    let mySiteIds: string[] = [];
+    let mySiteIdentifiers: string[] = [];
 
     if (role === "SUPER_ADMIN") {
-      const allSites = await Website.find({}, '_id');
-      mySiteIds = allSites.map(s => s._id.toString());
+      const allSites = await Website.find({}, '_id slug');
+      mySiteIdentifiers = [
+        ...allSites.map(s => s._id.toString()),
+        ...allSites.map(s => s.slug).filter(Boolean)
+      ];
     } else {
       // Admins manage sites they own (userId) and any sites manually assigned to them (assignedSiteIds)
-      const ownedSites = await Website.find({ userId: adminUser._id.toString() }, '_id');
-      const ownedSiteIds = ownedSites.map(s => s._id.toString());
-      mySiteIds = Array.from(new Set([...ownedSiteIds, ...(adminUser.assignedSiteIds || [])]));
+      const ownedSites = await Website.find({ userId: adminUser._id.toString() }, '_id slug');
+      const assignedSites = await Website.find({ _id: { $in: adminUser.assignedSiteIds || [] } }, '_id slug');
+      
+      mySiteIdentifiers = Array.from(new Set([
+        ...ownedSites.map(s => s._id.toString()),
+        ...ownedSites.map(s => s.slug).filter(Boolean),
+        ...assignedSites.map(s => s._id.toString()),
+        ...assignedSites.map(s => s.slug).filter(Boolean)
+      ]));
     }
 
-    if (mySiteIds.length === 0) {
+    if (mySiteIdentifiers.length === 0) {
       return NextResponse.json({ customers: [] }, { status: 200 });
     }
 
-    // Find all customers whose assignedSiteIds overlaps with the admin's siteIds
+    // Find all customers whose assignedSiteIds overlaps with the admin's site identifiers (IDs or Slugs)
     const customers = await User.find({
       role: 'CUSTOMER',
-      assignedSiteIds: { $in: mySiteIds }
+      assignedSiteIds: { $in: mySiteIdentifiers }
     }).select('-password').sort({ createdAt: -1 }).lean();
 
     // Fetch all orders tied to these admin's sites to map them
     const allRelevantOrders = await Order.find({
-      siteId: { $in: mySiteIds }
+      siteId: { $in: mySiteIdentifiers }
     }).lean();
 
     const customersWithOrders = customers.map((c: any) => ({

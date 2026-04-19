@@ -39,11 +39,17 @@ export async function PATCH(
     }
 
     if (role !== "SUPER_ADMIN") {
-      const ownedSites = await Website.find({ userId: adminUser._id.toString() }, '_id');
-      const ownedSiteIds = ownedSites.map(s => s._id.toString());
-      const mySiteIds = Array.from(new Set([...ownedSiteIds, ...(adminUser.assignedSiteIds || [])]));
+      const ownedSites = await Website.find({ userId: adminUser._id.toString() }, '_id slug');
+      const assignedSites = await Website.find({ _id: { $in: adminUser.assignedSiteIds || [] } }, '_id slug');
       
-      if (!mySiteIds.includes(order.siteId)) {
+      const mySiteIdentifiers = Array.from(new Set([
+        ...ownedSites.map(s => s._id.toString()),
+        ...ownedSites.map(s => s.slug).filter(Boolean),
+        ...assignedSites.map(s => s._id.toString()),
+        ...assignedSites.map(s => s.slug).filter(Boolean)
+      ]));
+      
+      if (!mySiteIdentifiers.includes(order.siteId)) {
          return NextResponse.json({ error: "Forbidden: You don't manage this store" }, { status: 403 });
       }
     }

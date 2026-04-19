@@ -23,7 +23,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const ticket = await SupportTicket.findOneAndUpdate(
       query,
       { status },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!ticket) return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });

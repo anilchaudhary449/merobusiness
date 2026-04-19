@@ -202,7 +202,7 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
     if (status === 'authenticated' && session?.user) {
       const user = session.user as { role?: string; assignedSiteIds?: string[] };
       const isSuperAdmin = user.role === 'SUPER_ADMIN';
-      const hasAccess = isSuperAdmin || user.assignedSiteIds?.includes(siteId);
+      const hasAccess = isSuperAdmin || user.role === 'ADMIN' || user.assignedSiteIds?.includes(siteId);
 
       if (!hasAccess) {
         toast.error('Access Denied', { description: 'You do not have permission to edit this site.' });

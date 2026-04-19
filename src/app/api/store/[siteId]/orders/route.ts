@@ -10,7 +10,7 @@ export async function POST(
   try {
     const { siteId } = await params;
     const body = await req.json();
-    const { customerId, product, method } = body;
+    const { customerId, product, method, paymentMethod } = body;
 
     if (!siteId || !customerId || !product || !method) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -18,25 +18,34 @@ export async function POST(
 
     await dbConnect();
 
+    // Resolve siteId (slug) to actual site _id for data consistency
+    const Website = (await import("@/models/Website")).default;
+    const site = await Website.findOne({ slug: siteId });
+    if (!site) {
+      return NextResponse.json({ error: "Store not found" }, { status: 404 });
+    }
+    const actualSiteId = site._id.toString();
+
     // Verify user exists and update their assignedSiteIds if needed
     const customer = await User.findById(customerId);
     if (!customer) {
       return NextResponse.json({ error: "Customer not found" }, { status: 404 });
     }
 
-    if (!customer.assignedSiteIds.includes(siteId)) {
+    if (!customer.assignedSiteIds.includes(actualSiteId)) {
       await User.updateOne(
         { _id: customerId },
-        { $addToSet: { assignedSiteIds: siteId } }
+        { $addToSet: { assignedSiteIds: actualSiteId } }
       );
     }
 
     // Create the order
     const order = await Order.create({
-      siteId,
+      siteId: actualSiteId,
       customerId,
       product,
       method,
+      paymentMethod: paymentMethod || 'COD',
     });
 
     return NextResponse.json({ success: true, order }, { status: 201 });

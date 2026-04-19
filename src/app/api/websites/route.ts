@@ -6,6 +6,7 @@ import { createWebsiteSchema } from '@/lib/validations/website';
 import { z } from 'zod';
 import { dbConnect } from '@/lib/mongoose';
 import User from '@/models/User';
+import Website from '@/models/Website';
 
 // Get websites based on role
 export async function GET(req: Request) {
@@ -24,12 +25,21 @@ export async function GET(req: Request) {
       // Super-Admin sees everything
       websites = await listAllWebsites();
     } else {
-      // Admin only sees their assigned sites
-      // Fetch fresh user data to get latest assignedSiteIds (JWT might be stale)
+      // Admin sees their assigned sites AND sites they own
       const user = await User.findById(sessionUser.id).lean();
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
       const assignedIds = (user as any)?.assignedSiteIds || [];
       
-      websites = await getWebsitesByIds(assignedIds);
+      // Also fetch sites where this user is the owner (userId)
+      const ownedSites = await Website.find({ userId: sessionUser.id }, '_id').lean();
+      const ownedIds = ownedSites.map(s => s._id.toString());
+
+      const allMySiteIds = Array.from(new Set([...assignedIds, ...ownedIds]));
+      
+      websites = await getWebsitesByIds(allMySiteIds);
     }
 
     return NextResponse.json(websites);

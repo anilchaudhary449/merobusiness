@@ -65,10 +65,14 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
     dob: '', countryCode: '+977', phone: ''
   });
   const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
+  const [checkoutProduct, setCheckoutProduct] = useState<any>(null);
+  const [checkoutMethod, setCheckoutMethod] = useState<'WHATSAPP' | 'MESSENGER' | null>(null);
+  const [isCheckoutModalVisible, setIsCheckoutModalVisible] = useState(false);
 
   // Review State
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE_PAYMENT'>('COD');
 
   const fetcher = (url: string) => fetch(url).then(res => res.json());
   
@@ -301,6 +305,31 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
       return;
     }
 
+    // NEW: Intercept card/modal clicks to show checkout confirmation first
+    if (!isCheckoutModalVisible) {
+       setCheckoutProduct(product);
+       setCheckoutMethod(method);
+       setIsCheckoutModalVisible(true);
+       return;
+    }
+
+    // Enhance message with payment and delivery details
+    let finalMessage = message;
+    if (product) {
+       const addr = customerProfile?.deliveryAddress || 'Not specified';
+       const loc = customerProfile?.mapLocation?.lat ? `https://www.google.com/maps?q=${customerProfile.mapLocation.lat},${customerProfile.mapLocation.lng}` : 'Not shared';
+       const pm = paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : 'Online Payment';
+       
+       finalMessage = `🛍️ *Order from ${businessName}*\n\n` +
+                      `*Item:* ${product.name}\n` +
+                      `*Price:* ${product.price}\n` +
+                      `*Payment:* ${pm}\n\n` +
+                      `📍 *Delivery Details:*\n` +
+                      `*Address:* ${addr}\n` +
+                      `*Location:* ${loc}\n\n` +
+                      `_Please confirm my order._`;
+    }
+
     try {
       if (product) {
         await fetch(`/api/store/${site.slug || site._id}/orders`, {
@@ -315,6 +344,7 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
               imageUrl: product.imageUrl,
             },
             method,
+            paymentMethod,
           })
         });
       }
@@ -322,10 +352,14 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
       console.error("Failed to log order", e);
     }
 
+    const finalLink = method === 'WHATSAPP' 
+      ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(finalMessage)}`
+      : buildMessengerLink(finalMessage);
+
     if (method === 'MESSENGER') {
       try {
         if (navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText(message);
+          await navigator.clipboard.writeText(finalMessage);
           setMessengerNotice('Order message copied. Paste it into Messenger.');
           window.setTimeout(() => setMessengerNotice(''), 3000);
         }
@@ -335,8 +369,8 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
       }
     }
 
-    if (link && link !== '#') {
-      window.open(link, '_blank', 'noopener,noreferrer');
+    if (finalLink && finalLink !== '#') {
+      window.open(finalLink, '_blank', 'noopener,noreferrer');
     }
   };
   
@@ -920,7 +954,7 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
             )}
           </div>
 
-          {/* Map */}
+          {/* Quick Links / Navigation */}
           <div className="w-full lg:w-1/3 flex-shrink-0">
             <div className="w-full h-48 md:h-64 overflow-hidden rounded-2xl shadow-2xl border bg-gray-800/20" style={{ borderColor: 'var(--section-text)' }}>
               {renderMap()}
@@ -1030,6 +1064,8 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                              </div>
                           </div>
                        </div>
+
+
                        <div className="pt-6 border-t border-slate-50 flex gap-4">
                           <button onClick={(e) => toggleWishlist(e, activeProduct.id)} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-xs border transition-all ${wishlist.has(activeProduct.id) ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
                              <Heart size={16} fill={wishlist.has(activeProduct.id) ? "currentColor" : "none"} /> 
@@ -1461,7 +1497,7 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-bold text-slate-900 truncate">{o.product?.name || 'Unknown Item'}</p>
-                              <p className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mt-0.5 inline-block pr-1"><span className="text-slate-400">QTY:</span> {o.product?.quantity || 1} • {o.paymentMethod.replace(/_/g, ' ')}</p>
+                              <p className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mt-0.5 inline-block pr-1"><span className="text-slate-400">QTY:</span> {o.product?.quantity || 1} • {(o.paymentMethod || 'COD').replace(/_/g, ' ')}</p>
                             </div>
                             <div className="text-right">
                               <span className="text-xs font-black text-indigo-600 block">{o.product?.price}</span>
@@ -1483,6 +1519,100 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Checkout Confirmation Modal ─── */}
+      {isCheckoutModalVisible && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+          <div className="absolute inset-0 modal-backdrop" onClick={() => setIsCheckoutModalVisible(false)} />
+          <div className="relative w-full max-w-lg bg-white rounded-[40px] flex flex-col max-h-[90vh] shadow-2xl animate-in scale-in-95 duration-200 overflow-hidden">
+             <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
+                <button onClick={() => setIsCheckoutModalVisible(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 transition-all">
+                  <X size={20} />
+                </button>
+
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 rounded-3xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mx-auto mb-4">
+                    <CheckCircle2 size={28} />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900">Confirm Your Order</h3>
+                  <p className="text-sm text-slate-500 mt-1 font-medium">Almost there! Review your details.</p>
+                </div>
+
+                {checkoutProduct && (
+                  <div className="mb-8 p-4 bg-slate-50 rounded-3xl border border-slate-100 flex items-center gap-4">
+                     <img src={checkoutProduct.imageUrl} className="w-20 h-20 object-cover rounded-2xl shadow-sm" alt="product" />
+                     <div className="flex-1">
+                        <p className="text-sm font-black text-slate-900">{checkoutProduct.name}</p>
+                        <p className="text-lg font-bold text-brand-accent">{checkoutProduct.price}</p>
+                     </div>
+                  </div>
+                )}
+
+                <div className="space-y-6">
+                   {/* Payment Method */}
+                   <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Method</p>
+                      <div className="grid grid-cols-2 gap-3">
+                         <button 
+                           onClick={() => setPaymentMethod('COD')}
+                           className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${paymentMethod === 'COD' ? 'bg-indigo-50 border-indigo-200 ring-2 ring-indigo-500/10' : 'bg-slate-50 border-slate-100 opacity-60 hover:opacity-100'}`}
+                         >
+                            <Package size={20} className={paymentMethod === 'COD' ? 'text-indigo-600' : 'text-slate-400'} />
+                            <span className={`text-[10px] font-black uppercase ${paymentMethod === 'COD' ? 'text-indigo-900' : 'text-slate-500'}`}>Cash on Delivery</span>
+                         </button>
+                         <button 
+                           onClick={() => setPaymentMethod('ONLINE_PAYMENT')}
+                           className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${paymentMethod === 'ONLINE_PAYMENT' ? 'bg-indigo-50 border-indigo-200 ring-2 ring-indigo-500/10' : 'bg-slate-50 border-slate-100 opacity-60 hover:opacity-100'}`}
+                         >
+                            <BadgeCheck size={20} className={paymentMethod === 'ONLINE_PAYMENT' ? 'text-indigo-600' : 'text-slate-400'} />
+                            <span className={`text-[10px] font-black uppercase ${paymentMethod === 'ONLINE_PAYMENT' ? 'text-indigo-900' : 'text-slate-500'}`}>Online Payment</span>
+                         </button>
+                      </div>
+                   </div>
+
+                   {/* Delivery Address Review */}
+                   <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Delivery Address</p>
+                         <button 
+                           onClick={() => { setIsCheckoutModalVisible(false); setProfileModal(true); setProfileActiveTab('info'); }}
+                           className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors"
+                         >
+                            Edit
+                         </button>
+                      </div>
+                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex gap-3 items-start">
+                         <MapPin size={18} className="text-slate-400 shrink-0 mt-0.5" />
+                         <p className="text-sm font-bold text-slate-700 leading-tight">
+                            {customerProfile?.deliveryAddress || 'No address set. Please add it in your profile.'}
+                         </p>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="mt-10 pt-6 border-t border-slate-50">
+                   <button
+                     onClick={(e) => {
+                       handleOrderClick(
+                         e as any, 
+                         `Hi, I want to order ${checkoutProduct?.name || ''}`, 
+                         checkoutProduct, 
+                         checkoutMethod || 'WHATSAPP', 
+                         '#'
+                       );
+                       setIsCheckoutModalVisible(false);
+                     }}
+                     className={`w-full py-5 text-white font-black rounded-3xl shadow-2xl transition-all flex items-center justify-center gap-3 ${checkoutMethod === 'MESSENGER' ? 'bg-blue-600 shadow-blue-600/20' : 'bg-emerald-600 shadow-emerald-600/20'} hover:scale-105`}
+                   >
+                     {checkoutMethod === 'MESSENGER' ? <MessengerIcon size={20} /> : <MessageCircle size={20} />}
+                     Confirm and Open {checkoutMethod === 'MESSENGER' ? 'Messenger' : 'WhatsApp'}
+                     <ArrowRight size={20} />
+                   </button>
+                </div>
+             </div>
           </div>
         </div>
       )}

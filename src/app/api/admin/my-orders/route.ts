@@ -25,24 +25,34 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Admin account not found" }, { status: 404 });
     }
 
-    let mySiteIds: string[] = [];
+    let mySiteIdentifiers: string[] = [];
 
     if (role === "SUPER_ADMIN") {
-      const allSites = await Website.find({}, '_id');
-      mySiteIds = allSites.map(s => s._id.toString());
+      const allSites = await Website.find({}, '_id slug');
+      mySiteIdentifiers = [
+        ...allSites.map(s => s._id.toString()),
+        ...allSites.map(s => s.slug).filter(Boolean)
+      ];
     } else {
-      const ownedSites = await Website.find({ userId: adminUser._id.toString() }, '_id');
-      const ownedSiteIds = ownedSites.map(s => s._id.toString());
-      mySiteIds = Array.from(new Set([...ownedSiteIds, ...(adminUser.assignedSiteIds || [])]));
+      // Admins manage sites they own (userId) and any sites manually assigned to them (assignedSiteIds)
+      const ownedSites = await Website.find({ userId: adminUser._id.toString() }, '_id slug');
+      const assignedSites = await Website.find({ _id: { $in: adminUser.assignedSiteIds || [] } }, '_id slug');
+      
+      mySiteIdentifiers = Array.from(new Set([
+        ...ownedSites.map(s => s._id.toString()),
+        ...ownedSites.map(s => s.slug).filter(Boolean),
+        ...assignedSites.map(s => s._id.toString()),
+        ...assignedSites.map(s => s.slug).filter(Boolean)
+      ]));
     }
 
-    if (mySiteIds.length === 0) {
+    if (mySiteIdentifiers.length === 0) {
       return NextResponse.json({ orders: [] }, { status: 200 });
     }
 
     // Find all orders tied to the admin's sites, populated with customer details
     const orders = await Order.find({
-      siteId: { $in: mySiteIds }
+      siteId: { $in: mySiteIdentifiers }
     })
     .populate('customerId', 'name email phone deliveryAddress username mapLocation')
     .sort({ createdAt: -1 });

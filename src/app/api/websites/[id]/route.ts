@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import mongoose from 'mongoose';
+import Website from '@/models/Website';
+import { dbConnect } from '@/lib/mongoose';
 import {
   deleteWebsiteById,
   getWebsiteById,
@@ -15,7 +18,19 @@ async function checkAccess(id: string) {
   const user = session.user as any;
   if (user.role === 'SUPER_ADMIN') return { user };
   
+  await dbConnect();
+  
+  // Check if user is assigned to this site by ID
   if (user.assignedSiteIds?.includes(id)) return { user };
+
+  // Check if user owns or is assigned via Slug or ID check in DB
+  const website = await Website.findOne({
+    $or: [{ _id: mongoose.isValidObjectId(id) ? id : new mongoose.Types.ObjectId() }, { slug: id }]
+  }).lean();
+
+  if (website && website.userId === user.id) {
+    return { user };
+  }
 
   return { error: 'Forbidden', status: 403 };
 }
