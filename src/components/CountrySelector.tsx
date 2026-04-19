@@ -54,12 +54,13 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
         className={`flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl transition-all duration-200 hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500/20 outline-none w-full h-full min-h-[44px] ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
       >
         <div className="flex items-center gap-2 flex-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={`https://flagcdn.com/w40/${selectedCountry.code.toLowerCase()}.png`}
             alt={selectedCountry.name}
             className="w-5 h-auto rounded-sm shadow-sm"
             onError={(e) => {
-              (e.target as any).src = `https://placehold.co/40x30/6366f1/ffffff?text=${selectedCountry.code}`;
+              (e.target as HTMLImageElement).src = `https://placehold.co/40x30/6366f1/ffffff?text=${selectedCountry.code}`;
             }}
           />
           <span className="text-sm font-bold text-slate-700">{selectedCountry.dial_code}</span>
@@ -94,7 +95,8 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
                   onClick={() => handleSelect(country)}
                   className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-indigo-50 transition-colors text-left ${value === country.dial_code ? 'bg-indigo-50/50' : ''}`}
                 >
-                   <img 
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img 
                     src={`https://flagcdn.com/w40/${country.code.toLowerCase()}.png`}
                     alt={country.name}
                     className="w-5 h-auto rounded-sm shadow-sm shrink-0"

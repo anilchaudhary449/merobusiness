@@ -12,6 +12,7 @@ const INT_SIZE_OPTIONS = ['', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL'];
 interface SortableProductItemProps {
   id: string;
   index: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   product: any;
   updateProduct: (index: number, field: string, value: string) => void;
   removeProduct: (index: number) => void;

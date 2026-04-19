@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Lock, Mail, Loader2, Sparkles, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -10,8 +10,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -53,14 +51,14 @@ export default function LoginPage() {
             } else {
               window.location.href = '/dashboard';
             }
-          } catch (error) {
+          } catch {
             // Fallback to dashboard if session fetch fails
             window.location.href = '/dashboard';
           }
         }, 800);
       }
 
-    } catch (error) {
+    } catch {
       toast.error('Unexpected error');
     } finally {
       setIsLoading(false);
@@ -137,9 +135,9 @@ export default function LoginPage() {
 
         <p className="text-center mt-6 text-slate-500 text-sm">
           New admin?{' '}
-          <a href="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
+          <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
             Register here
-          </a>
+          </Link>
         </p>
         <p className="text-center mt-2 text-slate-600 text-xs">
           System access restricted to authorized personnel only.

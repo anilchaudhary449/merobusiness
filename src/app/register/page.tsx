@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import {
-  User, Lock, Phone, Building2, FileText, Image as ImageIcon,
+  User, Lock, Building2, FileText, Image as ImageIcon,
   CheckCircle2, XCircle, Loader2, Eye, EyeOff, ArrowRight, ShieldCheck, AtSign
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,8 +14,6 @@ import { CountrySelector } from '@/components/CountrySelector';
 type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 export default function RegisterPage() {
-  const router = useRouter();
-
   const [form, setForm] = useState({
     username: '',
     password: '',
@@ -110,6 +107,7 @@ export default function RegisterPage() {
     const selectedCountry = COUNTRIES.find(c => c.dial_code === form.countryCode);
     if (selectedCountry) {
       const fullNumber = `${form.countryCode}${phoneDigits}`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const isValid = isValidPhoneNumber(fullNumber, selectedCountry.code as any);
       setPhoneStatus({
         isValid,
@@ -151,6 +149,7 @@ export default function RegisterPage() {
     
     if (selectedCountry) {
       const fullNumber = `${form.countryCode}${phoneDigits}`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!isValidPhoneNumber(fullNumber, selectedCountry.code as any)) {
         toast.error(`Invalid phone number format for ${selectedCountry.name}.`);
         return;
@@ -181,8 +180,8 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error(data.error || 'Registration failed.');
       setSubmittedEmail(`${form.username.toLowerCase()}@merobusiness.com`);
       setSubmitted(true);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Registration failed.');
     } finally {
       setIsSubmitting(false);
     }
@@ -309,6 +308,7 @@ export default function RegisterPage() {
                 {phoneStatus.show && (
                   <div className={`mt-2 ml-1 flex items-center gap-2 text-[11px] font-bold transition-all duration-300 animate-in fade-in slide-in-from-top-1 ${phoneStatus.isValid ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {phoneStatus.isValid ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={`https://flagcdn.com/w40/${COUNTRIES.find(c => c.dial_code === form.countryCode)?.code.toLowerCase()}.png`} 
                       className="w-4 h-auto rounded-[2px] shadow-sm ml-1"
@@ -348,6 +348,7 @@ export default function RegisterPage() {
                 />
                 {nationalIdPhoto ? (
                   <div className="w-full space-y-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={nationalIdPhoto} alt="National ID Preview" className="h-32 object-contain mx-auto rounded-xl border border-slate-700" />
                     <p className="text-center text-xs text-emerald-400 font-medium flex items-center justify-center gap-1">
                       <CheckCircle2 size={14} /> {photoFileName}
