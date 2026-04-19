@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ siteId: s
 
 export default async function PublicWebsite({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
-  const siteRaw = await getWebsiteBySlug(siteId) as any;
+  const siteRaw = await getWebsiteBySlug(siteId) as { userId?: string; isActive?: boolean; businessName?: string; content?: { about?: { description?: string } }; faviconUrl?: string } | null;
   
   if (!siteRaw) {
     notFound();

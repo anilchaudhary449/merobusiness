@@ -4,8 +4,8 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
-  Save, ArrowLeft, Eye, Smartphone, Monitor, CheckCircle2,
-  Palette, Type, ImageIcon, Store, MapPin, MessageCircle, Info, Layout, Package, Map, Sparkles
+  Save, ArrowLeft, Smartphone, Monitor, CheckCircle2,
+  Palette, Store, MessageCircle, Info, Layout, Package, Map
 } from 'lucide-react';
 import Link from 'next/link';
 import PreviewSite from '@/components/PreviewSite';
@@ -27,6 +27,78 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+
+interface Product {
+  id: string;
+  name: string;
+  price: string;
+  imageUrl: string;
+  sizeEU?: string;
+  sizeINT?: string;
+  dimensions?: { length: string; width: string; height: string };
+  [key: string]: unknown;
+}
+
+interface SiteContent {
+  hero: { title: string; subtitle: string; ctaText?: string; imageUrl: string };
+  about?: { description?: string; imageUrl?: string };
+  products: Product[];
+}
+
+interface MapConfig {
+  query?: string;
+  zoom?: number;
+}
+
+interface SiteData {
+  _id?: string;
+  businessName: string;
+  theme?: string;
+  fontFamily?: string;
+  primaryColor?: string;
+  backgroundColor?: string;
+  headingColor?: string;
+  textColor?: string;
+  headingWeight?: string;
+  logoUrl?: string;
+  faviconUrl?: string;
+  whatsappNumber?: string;
+  messengerUsername?: string;
+  directPhone?: string;
+  businessEmail?: string;
+  location?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  tiktokUrl?: string;
+  twitterUrl?: string;
+  navFontFamily?: string;
+  navBgColor?: string;
+  navTextColor?: string;
+  navHeadingWeight?: string;
+  navAnimationStyle?: string;
+  heroBgColor?: string;
+  heroFontFamily?: string;
+  heroHeadingColor?: string;
+  heroTextColor?: string;
+  heroHeadingWeight?: string;
+  aboutBgColor?: string;
+  aboutFontFamily?: string;
+  aboutHeadingColor?: string;
+  aboutTextColor?: string;
+  aboutHeadingWeight?: string;
+  productsBgColor?: string;
+  productsHeadingColor?: string;
+  productsFontFamily?: string;
+  productsTextColor?: string;
+  productsHeadingWeight?: string;
+  footerFontFamily?: string;
+  footerBgColor?: string;
+  footerHeadingColor?: string;
+  footerTextColor?: string;
+  footerHeadingWeight?: string;
+  mapConfig?: MapConfig;
+  content: SiteContent;
+}
 
 const FONT_OPTIONS = [
   { value: 'Inter', label: 'Inter (Modern)' },
@@ -86,7 +158,7 @@ const INT_TO_EU_SIZE_MAP: Record<string, string> = {
 export default function Builder({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = use(params);
   const { data: session, status } = useSession();
-  const [site, setSite] = useState<any>(null);
+  const [site, setSite] = useState<SiteData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
@@ -127,7 +199,7 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
     }
 
     if (status === 'authenticated' && session?.user) {
-      const user = session.user as any;
+      const user = session.user as { role?: string; assignedSiteIds?: string[] };
       const isSuperAdmin = user.role === 'SUPER_ADMIN';
       const hasAccess = isSuperAdmin || user.assignedSiteIds?.includes(siteId);
 
@@ -166,14 +238,14 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
 
       const toastMsg = dirtyFields.size === 1
         ? `${fieldLabels[Array.from(dirtyFields)[0]] || 'Changes'} saved successfully!`
-        : `${site.businessName} saved successfully!`;
+        : `${site?.businessName} saved successfully!`;
 
       toast.success(toastMsg, {
         description: 'Your changes are now live.',
         icon: <CheckCircle2 size={16} className="text-green-500" />
       });
       setDirtyFields(new Set());
-    } catch (err) {
+    } catch (_err) {
       setSaving(false);
       toast.error('Failed to save changes', {
         description: 'Please check your connection and try again.'
@@ -183,15 +255,13 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
 
   const updateContent = (section: string, field: string, value: string) => {
     setDirtyFields(prev => new Set(prev).add(`${section}.${field}`));
+    const prevSection = (site!.content[section as keyof SiteContent] ?? {}) as Record<string, unknown>;
     setSite({
-      ...site,
+      ...site!,
       content: {
-        ...site.content,
-        [section]: {
-          ...site.content[section],
-          [field]: value
-        }
-      }
+        ...site!.content,
+        [section]: { ...prevSection, [field]: value }
+      } as SiteContent
     });
   };
 
@@ -200,32 +270,28 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
   };
 
   const addProduct = () => {
-    const newProduct = {
+    const newProduct: Product = {
       id: Date.now().toString(),
       name: 'New Product',
       price: 'Rs. 1000',
       imageUrl: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&auto=format&fit=crop',
       sizeEU: '',
       sizeINT: '',
-      dimensions: {
-        length: '',
-        width: '',
-        height: '',
-      }
+      dimensions: { length: '', width: '', height: '' }
     };
     markDirty('products');
     setSite({
-      ...site,
+      ...site!,
       content: {
-        ...site.content,
-        products: [...site.content.products, newProduct]
+        ...site!.content,
+        products: [...site!.content.products, newProduct]
       }
     });
   };
 
   const updateProduct = (index: number, field: string, value: string) => {
     setDirtyFields(prev => new Set(prev).add('products'));
-    const updatedProducts = [...site.content.products];
+    const updatedProducts = [...site!.content.products];
 
     if (field === 'sizeEU') {
       updatedProducts[index] = {
@@ -241,27 +307,25 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
       };
     } else if (field.includes('.')) {
       const [parent, child] = field.split('.');
+      const parentVal = (updatedProducts[index] as Record<string, Record<string, unknown>>)[parent] ?? {};
       updatedProducts[index] = {
         ...updatedProducts[index],
-        [parent]: {
-          ...updatedProducts[index][parent],
-          [child]: value
-        }
+        [parent]: { ...parentVal, [child]: value }
       };
     } else {
       updatedProducts[index] = { ...updatedProducts[index], [field]: value };
     }
     setSite({
-      ...site,
-      content: { ...site.content, products: updatedProducts }
+      ...site!,
+      content: { ...site!.content, products: updatedProducts }
     });
   };
 
   const removeProduct = (index: number) => {
     markDirty('products');
-    const newProducts = [...site.content.products];
+    const newProducts = [...site!.content.products];
     newProducts.splice(index, 1);
-    setSite({ ...site, content: { ...site.content, products: newProducts } });
+    setSite({ ...site!, content: { ...site!.content, products: newProducts } });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -269,13 +333,14 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
 
     if (active.id !== over?.id) {
       markDirty('products');
-      const oldIndex = site.content.products.findIndex((p: any) => p.id === active.id);
-      const newIndex = site.content.products.findIndex((p: any) => p.id === over?.id);
+      const products = site!.content.products;
+      const oldIndex = products.findIndex((p) => p.id === active.id);
+      const newIndex = products.findIndex((p) => p.id === over?.id);
 
-      const newProducts = arrayMove(site.content.products, oldIndex, newIndex);
+      const newProducts = arrayMove(products, oldIndex, newIndex);
       setSite({
-        ...site,
-        content: { ...site.content, products: newProducts }
+        ...site!,
+        content: { ...site!.content, products: newProducts }
       });
     }
   };
@@ -325,7 +390,7 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
 
         <div className="flex-1 overflow-y-auto p-5 space-y-8 pb-32">
 
-          {((session?.user as any)?.permissions?.canChangeTheme || (session?.user as any)?.role === 'SUPER_ADMIN') && (
+          {((session?.user as { permissions?: { canChangeTheme?: boolean }; role?: string })?.permissions?.canChangeTheme || (session?.user as { role?: string })?.role === 'SUPER_ADMIN') && (
             <section>
               <div className="flex items-center space-x-2 mb-4">
                 <Palette size={18} className="text-indigo-500" />
@@ -898,11 +963,11 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={site.content.products.map((p: any) => p.id)}
+                items={site.content.products.map((p) => p.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-4">
-                  {site.content.products.map((product: any, index: number) => (
+                  {site.content.products.map((product, index) => (
                     <SortableProductItem
                       key={product.id}
                       id={product.id}
