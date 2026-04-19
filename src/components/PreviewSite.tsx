@@ -781,19 +781,51 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
+                      {product.isNewArrival && (
+                         <div className="absolute top-3 left-3 px-2 py-1 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm">
+                           New Arrival
+                         </div>
+                      )}
+                      {(product.quantity !== undefined && product.quantity <= 0) && (
+                         <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center">
+                           <span className="bg-red-500 text-white px-4 py-2 font-black uppercase tracking-widest rounded-xl shadow-lg rotate-[-12deg] text-lg border-2 border-white">Sold Out</span>
+                         </div>
+                      )}
+                      {product.discountPercent > 0 && (
+                         <div className="absolute bottom-3 right-3 px-2 py-1 bg-rose-500 text-white text-[10px] font-black rounded-lg shadow-sm z-20">
+                           -{product.discountPercent}%
+                         </div>
+                      )}
+
                       <button 
                         onClick={(e) => toggleWishlist(e, product.id)}
-                        className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all ${wishlist.has(product.id) ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'bg-white/80 backdrop-blur-md text-gray-400 hover:text-rose-500'}`}
+                        className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all z-20 ${wishlist.has(product.id) ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'bg-white/80 backdrop-blur-md text-gray-400 hover:text-rose-500'}`}
                       >
                         <Heart size={16} fill={wishlist.has(product.id) ? "currentColor" : "none"} />
                       </button>
-                      <div className="absolute bottom-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-lg text-[10px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                        View Details
-                      </div>
                     </div>
-                    <div className="p-3 md:p-4 flex flex-col flex-1">
+                    <div className="p-3 md:p-4 flex flex-col flex-1 relative z-0">
+                      {(product.category || product.subCategory) && (
+                         <p className="text-[9px] uppercase tracking-wider font-bold text-gray-400 mb-1 line-clamp-1">
+                           {[product.category, product.subCategory].filter(Boolean).join(' • ')}
+                         </p>
+                      )}
                       <h3 className={`line-clamp-2 text-sm md:text-base leading-tight font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{product.name}</h3>
-                      <p className="font-bold text-brand-accent text-sm md:text-base mt-1.5 mb-3">{product.price}</p>
+                      <div className="mt-1.5 mb-3 flex items-center flex-wrap gap-2">
+                        <p className="font-bold text-brand-accent text-sm md:text-base">{product.price}</p>
+                        {product.markedPrice && (
+                          <p className="text-[10px] md:text-xs text-gray-400 line-through decoration-gray-300 font-medium">{product.markedPrice}</p>
+                        )}
+                      </div>
+
+                      {product.colors && product.colors.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                           {product.colors.map((color: any, idx: number) => (
+                              <div key={idx} title={color.name} className="w-3 h-3 rounded-full border border-gray-200 shadow-sm" style={{ backgroundColor: color.hex }}></div>
+                           ))}
+                        </div>
+                      )}
+
                       {(product.sizeEU || product.sizeINT) && (
                         <div className="mb-2 flex flex-wrap gap-2 text-[10px] md:text-xs">
                           {product.sizeEU && (
@@ -810,22 +842,22 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                         </p>
                       )}
                       <div className="grid grid-cols-2 gap-2 mt-auto">
-                        <a
-                          href={buildWhatsAppLink(`Hi, I am interested in ${product.name} of ${product.price}`)}
+                        <button
+                          disabled={product.quantity !== undefined && product.quantity <= 0}
                           onClick={(e) => handleOrderClick(e, `Hi, I am interested in ${product.name} of ${product.price}`, product, 'WHATSAPP', buildWhatsAppLink(`Hi, I am interested in ${product.name} of ${product.price}`))}
-                          className="flex items-center justify-center bg-green-50 text-green-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-green-100 hover:bg-green-100 cursor-pointer"
+                          className="flex items-center justify-center bg-green-50 text-green-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-green-100 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <MessageCircle size={14} className="mr-1" />
                           WhatsApp
-                        </a>
-                        <a
-                          href={buildMessengerLink(`Hi, I am interested in ${product.name} of ${product.price}`)}
+                        </button>
+                        <button
+                          disabled={product.quantity !== undefined && product.quantity <= 0}
                           onClick={(e) => handleOrderClick(e, `Hi, I am interested in ${product.name} of ${product.price}`, product, 'MESSENGER', buildMessengerLink(`Hi, I am interested in ${product.name} of ${product.price}`))}
-                          className="flex items-center justify-center bg-blue-50 text-blue-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-blue-100 hover:bg-blue-100 cursor-pointer"
+                          className="flex items-center justify-center bg-blue-50 text-blue-700 py-2 rounded-xl transition-colors font-medium text-[10px] md:text-xs border border-blue-100 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <MessengerIcon size={14} className="mr-1" />
                           Messenger
-                        </a>
+                        </button>
                       </div>
                     </div>
                   </div>

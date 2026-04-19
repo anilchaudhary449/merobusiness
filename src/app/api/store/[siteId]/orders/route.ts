@@ -40,14 +40,37 @@ export async function POST(
     }
 
     // Create the order
+    // We should safely resolve product metadata from the database instead of trusting the frontend payload blindly for analytical fields.
+    const siteProduct = site.content?.products?.find((p: any) => p.id === product.id || p._id?.toString() === product.id);
+    
+    const orderProductPayload = {
+      id: product.id,
+      name: siteProduct?.name || product.name,
+      price: siteProduct?.price || product.price,
+      imageUrl: siteProduct?.imageUrl || product.imageUrl,
+      quantity: product.quantity || 1,
+      markedPrice: siteProduct?.markedPrice || '',
+      costPrice: siteProduct?.costPrice || '',
+      category: siteProduct?.category || 'Uncategorized',
+      subCategory: siteProduct?.subCategory || '',
+    };
+
     const order = await Order.create({
       siteId: actualSiteId,
       customerId,
-      product,
+      product: orderProductPayload,
       method,
       paymentMethod: paymentMethod || 'COD',
       paymentReceipt: paymentReceipt || '',
     });
+
+    // Automatically decrement product quantity if it has quantity tracking
+    if (siteProduct && typeof siteProduct.quantity === 'number' && siteProduct.quantity > 0) {
+      await Website.updateOne(
+        { _id: actualSiteId, "content.products.id": product.id },
+        { $inc: { "content.products.$.quantity": -1 } }
+      );
+    }
 
     return NextResponse.json({ success: true, order }, { status: 201 });
   } catch (error: any) {

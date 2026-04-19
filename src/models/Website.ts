@@ -79,19 +79,27 @@ export interface IWebsite extends Document {
       description: string;
       imageUrl: string;
     };
-    products: Array<{
-      id: string;
-      name: string;
-      price: string;
-      imageUrl: string;
-      sizeEU: string;
-      sizeINT: string;
-      dimensions: {
-        length: string;
-        width: string;
-        height: string;
-      };
-    }>;
+      products: Array<{
+        id: string;
+        name: string;
+        price: string;
+        markedPrice?: string;
+        costPrice?: string;
+        discountPercent?: number;
+        category?: string;
+        subCategory?: string;
+        quantity?: number;
+        isNewArrival?: boolean;
+        colors?: Array<{ name: string; hex: string }>;
+        imageUrl: string;
+        sizeEU: string;
+        sizeINT: string;
+        dimensions: {
+          length: string;
+          width: string;
+          height: string;
+        };
+      }>;
   };
   isPublished: boolean;
   createdAt: Date;
@@ -181,6 +189,18 @@ const WebsiteSchema = new Schema<IWebsite>(
           id: { type: String },
           name: { type: String },
           price: { type: String },
+          markedPrice: { type: String, default: '' },
+          costPrice: { type: String, default: '' },
+          discountPercent: { type: Number, default: 0 },
+          category: { type: String, default: 'Uncategorized' },
+          subCategory: { type: String, default: '' },
+          quantity: { type: Number, default: 0 },
+          isNewArrival: { type: Boolean, default: false },
+          colors: [{
+            _id: false,
+            name: { type: String, default: '' },
+            hex: { type: String, default: '#000000' }
+          }],
           imageUrl: { type: String },
           sizeEU: { type: String, default: '' },
           sizeINT: { type: String, default: '' },

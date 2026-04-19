@@ -292,32 +292,37 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
     });
   };
 
-  const updateProduct = (index: number, field: string, value: string) => {
+  const updateProduct = (index: number, field: string | Record<string, any>, value?: any) => {
     setDirtyFields(prev => new Set(prev).add('products'));
     const updatedProducts = [...site!.content.products];
 
-    if (field === 'sizeEU') {
-      updatedProducts[index] = {
-        ...updatedProducts[index],
-        sizeEU: value,
-        sizeINT: value ? EU_TO_INT_SIZE_MAP[value] || '' : '',
-      };
-    } else if (field === 'sizeINT') {
-      updatedProducts[index] = {
-        ...updatedProducts[index],
-        sizeINT: value,
-        sizeEU: value ? INT_TO_EU_SIZE_MAP[value] || '' : '',
-      };
-    } else if (field.includes('.')) {
-      const [parent, child] = field.split('.');
-      const parentVal = (updatedProducts[index] as Record<string, Record<string, unknown>>)[parent] ?? {};
-      updatedProducts[index] = {
-        ...updatedProducts[index],
-        [parent]: { ...parentVal, [child]: value }
-      };
+    if (typeof field === 'object') {
+      updatedProducts[index] = { ...updatedProducts[index], ...field };
     } else {
-      updatedProducts[index] = { ...updatedProducts[index], [field]: value };
+      if (field === 'sizeEU') {
+        updatedProducts[index] = {
+          ...updatedProducts[index],
+          sizeEU: value,
+          sizeINT: value ? EU_TO_INT_SIZE_MAP[value] || '' : '',
+        };
+      } else if (field === 'sizeINT') {
+        updatedProducts[index] = {
+          ...updatedProducts[index],
+          sizeINT: value,
+          sizeEU: value ? INT_TO_EU_SIZE_MAP[value] || '' : '',
+        };
+      } else if (field.includes('.')) {
+        const [parent, child] = field.split('.');
+        const parentVal = (updatedProducts[index] as Record<string, Record<string, unknown>>)[parent] ?? {};
+        updatedProducts[index] = {
+          ...updatedProducts[index],
+          [parent]: { ...parentVal, [child]: value }
+        };
+      } else {
+        updatedProducts[index] = { ...updatedProducts[index], [field]: value };
+      }
     }
+    
     setSite({
       ...site!,
       content: { ...site!.content, products: updatedProducts }

@@ -7,6 +7,10 @@ export interface IOrder extends Document {
     id: string;
     name: string;
     price: string;
+    markedPrice?: string;
+    costPrice?: string;
+    category?: string;
+    subCategory?: string;
     imageUrl?: string;
     quantity?: number;
   };
@@ -26,6 +30,10 @@ const OrderSchema = new Schema<IOrder>(
       id: { type: String, required: true },
       name: { type: String, required: true },
       price: { type: String, required: true },
+      markedPrice: { type: String, default: '' },
+      costPrice: { type: String, default: '' },
+      category: { type: String, default: 'Uncategorized' },
+      subCategory: { type: String, default: '' },
       imageUrl: { type: String },
       quantity: { type: Number, default: 1 },
     },

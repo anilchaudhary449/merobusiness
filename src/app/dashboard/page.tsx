@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AnalyticsTab from '@/components/AnalyticsTab';
 import useSWR from 'swr';
 import React from 'react';
 import { useForm } from 'react-hook-form';
@@ -13,7 +14,7 @@ import { createWebsiteSchema, CreateWebsiteInput } from '@/lib/validations/websi
 import { 
   PlusCircle, Link as LinkIcon, Settings, Globe, AlertCircle, 
   Trash2, ToggleLeft, ToggleRight, Palette, LogOut, ShieldCheck,
-  LayoutDashboard, Loader2, UserCog, X, Mail, Phone, User as UserIcon, Send, MessageSquare, CheckCircle2, XCircle, ShoppingCart, Users, ChevronRight
+  LayoutDashboard, Loader2, UserCog, X, Mail, Phone, User as UserIcon, Send, MessageSquare, CheckCircle2, XCircle, ShoppingCart, Users, ChevronRight, BarChart3
 } from 'lucide-react';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { toast } from 'sonner';
@@ -40,7 +41,7 @@ export default function Dashboard() {
   const { data: customersData, isLoading: isLoadingCustomers } = useSWR('/api/admin/my-customers', fetcher);
   const { data: ordersData, isLoading: isLoadingOrders, mutate: mutateOrders } = useSWR('/api/admin/my-orders', fetcher);
 
-  const [activeTab, setActiveTab] = useState<'stores' | 'customers' | 'orders'>('stores');
+  const [activeTab, setActiveTab] = useState<'stores' | 'customers' | 'orders' | 'analytics'>('stores');
   const [expandedCustomerIds, setExpandedCustomerIds] = useState<string[]>([]);
   
   // Support Chat SWR
@@ -440,6 +441,12 @@ export default function Dashboard() {
             className={`shrink-0 px-4 sm:px-5 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'orders' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
           >
             <span className="flex items-center"><ShoppingCart size={16} className="mr-2" /> Orders Track</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('analytics')}
+            className={`shrink-0 px-4 sm:px-5 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'analytics' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+          >
+            <span className="flex items-center"><BarChart3 size={16} className="mr-2" /> Analytics & Reports</span>
           </button>
         </div>
 
@@ -1025,6 +1032,10 @@ export default function Dashboard() {
               </>
             )}
           </div>
+        )}
+        {/* --- ANALYTICS TAB --- */}
+        {activeTab === 'analytics' && (
+          <AnalyticsTab orders={ordersData?.orders || []} />
         )}
 
       </div>
