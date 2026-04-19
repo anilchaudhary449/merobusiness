@@ -13,6 +13,7 @@ export interface IOrder extends Document {
   method: 'WHATSAPP' | 'MESSENGER';
   status: 'PLACED' | 'CONFIRMED' | 'PACKED' | 'PICKED' | 'SHIPPED' | 'ON_THE_WAY' | 'DELIVERED' | 'CANCELLED';
   paymentMethod: 'COD' | 'ONLINE_PAYMENT';
+  paymentReceipt?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,10 +36,11 @@ const OrderSchema = new Schema<IOrder>(
       default: 'PLACED' 
     },
     paymentMethod: { 
-      type: String, 
+      type: String,
       enum: ['COD', 'ONLINE_PAYMENT'], 
       default: 'COD' 
     },
+    paymentReceipt: { type: String, default: '' },
   },
   { timestamps: true }
 );

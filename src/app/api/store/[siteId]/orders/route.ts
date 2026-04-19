@@ -10,7 +10,7 @@ export async function POST(
   try {
     const { siteId } = await params;
     const body = await req.json();
-    const { customerId, product, method, paymentMethod } = body;
+    const { customerId, product, method, paymentMethod, paymentReceipt } = body;
 
     if (!siteId || !customerId || !product || !method) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -46,6 +46,7 @@ export async function POST(
       product,
       method,
       paymentMethod: paymentMethod || 'COD',
+      paymentReceipt: paymentReceipt || '',
     });
 
     return NextResponse.json({ success: true, order }, { status: 201 });

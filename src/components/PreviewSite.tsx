@@ -13,6 +13,8 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { toast } from 'sonner';
 import { getThemePreset } from '@/lib/theme-presets';
 import useSWR from 'swr';
+import ImageUpload from './ImageUpload';
+import { CreditCard, Wallet } from 'lucide-react';
 
 // Inline SVG social icons (not available in lucide-react v1.8)
 const FacebookIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
@@ -73,6 +75,7 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE_PAYMENT'>('COD');
+  const [paymentReceipt, setPaymentReceipt] = useState('');
 
   const fetcher = (url: string) => fetch(url).then(res => res.json());
   
@@ -292,11 +295,13 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
   const isDarkTheme = themeCardClass.includes('bg-white/5');
 
   const handleOrderClick = async (
-    event: React.MouseEvent<HTMLAnchorElement>,
+    event: React.MouseEvent<HTMLElement>,
     message: string,
     product: any | null,
     method: 'WHATSAPP' | 'MESSENGER',
-    link: string
+    link: string,
+    paymentMethod?: 'COD' | 'ONLINE_PAYMENT',
+    paymentReceipt?: string | null
   ) => {
     event.preventDefault();
 
@@ -345,6 +350,7 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
             },
             method,
             paymentMethod,
+            paymentReceipt,
           })
         });
       }
@@ -1573,6 +1579,31 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
                       </div>
                    </div>
 
+                   {paymentMethod === 'ONLINE_PAYMENT' && (
+                     <div className="space-y-4 pt-4 border-t border-slate-100">
+                        <div className="flex flex-col items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Scan & Pay</p>
+                           {site?.paymentQR ? (
+                             <img src={site.paymentQR} alt="Payment QR" className="w-48 h-48 object-contain rounded-lg shadow-sm" />
+                           ) : (
+                             <div className="flex flex-col items-center gap-2 text-slate-400 py-8">
+                               <XCircle size={32} strokeWidth={1.5} />
+                               <p className="text-xs italic text-center">No QR code provided by store.<br/>Please contact owner.</p>
+                             </div>
+                           )}
+                        </div>
+                        
+                        <div className="space-y-3">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Upload Payment Receipt (Mandatory)</p>
+                           <ImageUpload 
+                             value={paymentReceipt} 
+                             onChange={setPaymentReceipt} 
+                             label="Payment Proof" 
+                           />
+                        </div>
+                     </div>
+                   )}
+
                    {/* Delivery Address Review */}
                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -1595,20 +1626,25 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
 
                 <div className="mt-10 pt-6 border-t border-slate-50">
                    <button
+                     disabled={paymentMethod === 'ONLINE_PAYMENT' && !paymentReceipt}
                      onClick={(e) => {
                        handleOrderClick(
                          e as any, 
                          `Hi, I want to order ${checkoutProduct?.name || ''}`, 
                          checkoutProduct, 
                          checkoutMethod || 'WHATSAPP', 
-                         '#'
+                         '#',
+                         paymentMethod,
+                         paymentReceipt
                        );
                        setIsCheckoutModalVisible(false);
                      }}
-                     className={`w-full py-5 text-white font-black rounded-3xl shadow-2xl transition-all flex items-center justify-center gap-3 ${checkoutMethod === 'MESSENGER' ? 'bg-blue-600 shadow-blue-600/20' : 'bg-emerald-600 shadow-emerald-600/20'} hover:scale-105`}
+                     className={`w-full py-5 text-white font-black rounded-3xl shadow-2xl transition-all flex items-center justify-center gap-3 ${checkoutMethod === 'MESSENGER' ? 'bg-blue-600 shadow-blue-600/20' : 'bg-emerald-600 shadow-emerald-600/20'} ${paymentMethod === 'ONLINE_PAYMENT' && !paymentReceipt ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:scale-105'}`}
                    >
                      {checkoutMethod === 'MESSENGER' ? <MessengerIcon size={20} /> : <MessageCircle size={20} />}
-                     Confirm and Open {checkoutMethod === 'MESSENGER' ? 'Messenger' : 'WhatsApp'}
+                     {paymentMethod === 'ONLINE_PAYMENT' && !paymentReceipt 
+                       ? 'Upload Receipt to Confirm' 
+                       : `Confirm and Open ${checkoutMethod === 'MESSENGER' ? 'Messenger' : 'WhatsApp'}`}
                      <ArrowRight size={20} />
                    </button>
                 </div>

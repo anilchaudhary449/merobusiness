@@ -66,6 +66,7 @@ export interface IWebsite extends Document {
   navAnimationStyle: string;
   heroAnimationStyle: string;
   messengerUsername: string;
+  paymentQR: string;
 
   content: {
     hero: {
@@ -162,6 +163,7 @@ const WebsiteSchema = new Schema<IWebsite>(
     navAnimationStyle: { type: String, default: 'reveal' },
     heroAnimationStyle: { type: String, default: 'reveal' },
     messengerUsername: { type: String, default: '' },
+    paymentQR: { type: String, default: '' },
 
     content: {
       hero: {

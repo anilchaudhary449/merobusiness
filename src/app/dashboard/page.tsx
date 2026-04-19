@@ -817,8 +817,16 @@ export default function Dashboard() {
                                           <div className="flex-1 min-w-0">
                                             <p className="text-xs font-bold text-slate-800 truncate">{o.product?.name || 'Unknown Item'}</p>
                                             <p className="text-[10px] text-slate-400 font-medium">{new Date(o.createdAt).toLocaleDateString()} • Qty: {o.product?.quantity || 1}</p>
+                                            {o.paymentMethod === 'ONLINE_PAYMENT' && (
+                                              <span className="text-[8px] bg-indigo-50 text-indigo-600 px-1 rounded font-bold uppercase tracking-wider mt-1 inline-block">Online</span>
+                                            )}
                                           </div>
-                                          <span className="text-xs font-bold text-emerald-600">{o.product?.price}</span>
+                                          <div className="flex flex-col items-end gap-1">
+                                            <span className="text-xs font-bold text-emerald-600">{o.product?.price}</span>
+                                            {o.paymentReceipt && (
+                                              <a href={o.paymentReceipt} target="_blank" rel="noreferrer" className="text-[8px] text-indigo-500 underline font-bold">Receipt</a>
+                                            )}
+                                          </div>
                                         </div>
                                       ))}
                                     </div>
@@ -878,34 +886,41 @@ export default function Dashboard() {
                       </div>
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-bold text-slate-700 truncate">{o.customerId?.name || 'Guest'}</p>
-                        <div className="flex gap-2">
-                          <select
-                            value={o.paymentMethod || 'COD'}
-                            onChange={(e) => updateOrderStatus(o._id, 'paymentMethod', e.target.value)}
-                            className="bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg px-2 py-1 outline-none w-24"
-                          >
-                            <option value="COD">COD</option>
-                            <option value="ONLINE_PAYMENT">Online</option>
-                          </select>
-                          <select
-                            value={o.status || 'PLACED'}
-                            onChange={(e) => updateOrderStatus(o._id, 'status', e.target.value)}
-                            className={`border text-[10px] font-bold rounded-lg px-2 py-1 outline-none w-24 ${
-                              o.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-                              o.status === 'CANCELLED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                              o.status === 'SHIPPED' || o.status === 'ON_THE_WAY' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                              'bg-amber-50 text-amber-700 border-amber-200'
-                            }`}
-                          >
-                            <option value="PLACED">Placed</option>
-                            <option value="CONFIRMED">Confirmed</option>
-                            <option value="PACKED">Packed</option>
-                            <option value="PICKED">Picked</option>
-                            <option value="SHIPPED">Shipped</option>
-                            <option value="ON_THE_WAY">On The Way</option>
-                            <option value="DELIVERED">Delivered</option>
-                            <option value="CANCELLED">Cancelled</option>
-                          </select>
+                        <div className="flex flex-col items-end gap-2">
+                           <div className="flex gap-2">
+                             <select
+                               value={o.paymentMethod || 'COD'}
+                               onChange={(e) => updateOrderStatus(o._id, 'paymentMethod', e.target.value)}
+                               className="bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg px-2 py-1 outline-none w-24"
+                             >
+                               <option value="COD">COD</option>
+                               <option value="ONLINE_PAYMENT">Online</option>
+                             </select>
+                             <select
+                               value={o.status || 'PLACED'}
+                               onChange={(e) => updateOrderStatus(o._id, 'status', e.target.value)}
+                               className={`border text-[10px] font-bold rounded-lg px-2 py-1 outline-none w-24 ${
+                                 o.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                                 o.status === 'CANCELLED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                 o.status === 'SHIPPED' || o.status === 'ON_THE_WAY' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                 'bg-amber-50 text-amber-700 border-amber-200'
+                               }`}
+                             >
+                               <option value="PLACED">Placed</option>
+                               <option value="CONFIRMED">Confirmed</option>
+                               <option value="PACKED">Packed</option>
+                               <option value="PICKED">Picked</option>
+                               <option value="SHIPPED">Shipped</option>
+                               <option value="ON_THE_WAY">On The Way</option>
+                               <option value="DELIVERED">Delivered</option>
+                               <option value="CANCELLED">Cancelled</option>
+                             </select>
+                           </div>
+                           {o.paymentMethod === 'ONLINE_PAYMENT' && o.paymentReceipt && (
+                             <a href={o.paymentReceipt} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-600 font-bold underline flex items-center gap-1">
+                               <LinkIcon size={10} /> View Payment Receipt
+                             </a>
+                           )}
                         </div>
                       </div>
                     </div>
@@ -921,6 +936,7 @@ export default function Dashboard() {
                         <th className="py-4 px-4 font-bold text-right">Price</th>
                         <th className="py-4 px-4 font-bold">Customer</th>
                         <th className="py-4 px-4 font-bold">Payment</th>
+                        <th className="py-4 px-4 font-bold text-center">Receipt</th>
                         <th className="py-4 px-4 font-bold">Status</th>
                       </tr>
                     </thead>
@@ -968,6 +984,17 @@ export default function Dashboard() {
                               <option value="COD">Cash on Delivery</option>
                               <option value="ONLINE_PAYMENT">Online Payment</option>
                             </select>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            {o.paymentMethod === 'ONLINE_PAYMENT' && o.paymentReceipt ? (
+                              <a href={o.paymentReceipt} target="_blank" rel="noreferrer" className="inline-block p-1 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition-all">
+                                <div className="relative w-8 h-8 rounded overflow-hidden">
+                                  <Image src={o.paymentReceipt} alt="receipt" fill className="object-cover" />
+                                </div>
+                              </a>
+                            ) : (
+                              <span className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">N/A</span>
+                            )}
                           </td>
                           <td className="py-4 px-4">
                             <select
