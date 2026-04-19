@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -372,68 +373,71 @@ export default function Dashboard() {
       />
       
       <div className="max-w-6xl mx-auto space-y-8">
-        <header className="flex flex-col gap-4 rounded-[32px] border border-white bg-white/70 p-6 shadow-xl backdrop-blur-xl xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="flex items-center space-x-2 text-indigo-600 mb-1">
-              <LayoutDashboard size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Management Hub</span>
+        <header className="flex flex-col gap-3 rounded-[24px] sm:rounded-[32px] border border-white bg-white/70 p-4 sm:p-6 shadow-xl backdrop-blur-xl xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2 text-indigo-600 mb-1">
+                <LayoutDashboard size={14} className="sm:size-4" />
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em]">Management Hub</span>
+              </div>
+              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-900">Dashboard</h1>
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-900">Dashboard</h1>
-          </div>
-          <div className="flex items-center space-x-3">
-            {isSuperAdmin && (
-              <button 
-                onClick={() => router.push('/super-admin')}
-                className="flex items-center bg-slate-900 text-white px-5 py-2.5 rounded-2xl font-bold text-sm shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all"
-              >
-                <ShieldCheck size={18} className="mr-2" />
-                Super Panel
-              </button>
-            )}
-            <div className="px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 flex items-center">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2.5 animate-pulse" />
-              {session?.user?.email}
-            </div>
-            <button 
-              onClick={openProfileModal}
-              className="p-2.5 bg-white border border-indigo-100 text-indigo-500 rounded-2xl hover:bg-indigo-50 hover:text-indigo-600 transition-all relative"
-              title="Profile Settings"
-            >
-              <UserCog size={20} />
-              {userProfile?.pendingProfileChanges && Object.keys(userProfile.pendingProfileChanges).length > 0 && (
-                <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border-2 border-white"></span>
-                </span>
+            <div className="flex items-center flex-wrap gap-2">
+              {isSuperAdmin && (
+                <button 
+                  onClick={() => router.push('/super-admin')}
+                  className="flex items-center bg-slate-900 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all"
+                >
+                  <ShieldCheck size={16} className="sm:mr-2" />
+                  <span className="hidden xs:inline">Super Panel</span>
+                  <span className="xs:hidden">Super</span>
+                </button>
               )}
-            </button>
-            <button 
-              onClick={() => signOut()}
-              className="p-2.5 bg-white border border-red-100 text-red-500 rounded-2xl hover:bg-red-50 transition-all"
-              title="Sign Out"
-            >
-              <LogOut size={20} />
-            </button>
+              <div className="hidden md:flex px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 items-center">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2.5 animate-pulse" />
+                {session?.user?.email}
+              </div>
+              <button 
+                onClick={openProfileModal}
+                className="p-2 sm:p-2.5 bg-white border border-indigo-100 text-indigo-500 rounded-xl sm:rounded-2xl hover:bg-indigo-50 transition-all relative touch-target"
+                title="Profile Settings"
+              >
+                <UserCog size={18} className="sm:size-5" />
+                {userProfile?.pendingProfileChanges && Object.keys(userProfile.pendingProfileChanges).length > 0 && (
+                  <span className="absolute top-0 right-0 -mt-0.5 -mr-0.5 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 border-2 border-white"></span>
+                  </span>
+                )}
+              </button>
+              <button 
+                onClick={() => signOut()}
+                className="p-2 sm:p-2.5 bg-white border border-red-100 text-red-500 rounded-xl sm:rounded-2xl hover:bg-red-50 transition-all touch-target"
+                title="Sign Out"
+              >
+                <LogOut size={18} className="sm:size-5" />
+              </button>
+            </div>
           </div>
         </header>
 
         {/* --- Tabs --- */}
-        <div className="flex items-center space-x-2 border-b border-slate-200">
+        <div className="flex items-center overflow-x-auto scrollbar-none border-b border-slate-200 -mx-4 px-4 sm:mx-0 sm:px-0">
           <button 
             onClick={() => setActiveTab('stores')}
-            className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'stores' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            className={`shrink-0 px-4 sm:px-5 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'stores' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
           >
-            <span className="flex items-center"><Globe size={16} className="mr-2" /> Stores & Sites</span>
+            <span className="flex items-center"><Globe size={16} className="mr-2" /> Stores &amp; Sites</span>
           </button>
           <button 
             onClick={() => setActiveTab('customers')}
-            className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'customers' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            className={`shrink-0 px-4 sm:px-5 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'customers' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
           >
             <span className="flex items-center"><Users size={16} className="mr-2" /> Customers</span>
           </button>
           <button 
             onClick={() => setActiveTab('orders')}
-            className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'orders' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            className={`shrink-0 px-4 sm:px-5 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'orders' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
           >
             <span className="flex items-center"><ShoppingCart size={16} className="mr-2" /> Orders Track</span>
           </button>
@@ -483,43 +487,43 @@ export default function Dashboard() {
           <div className={isSuperAdmin ? "md:col-span-2 space-y-6" : "md:col-span-2 space-y-6"}>
             {/* Bulk Theme Manager - Only if permitted */}
             {canChangeTheme && !!websites?.length && (
-              <div className="rounded-[32px] border border-slate-200 bg-slate-900 p-6 shadow-2xl overflow-hidden relative group">
+              <div className="rounded-[32px] border border-slate-200 bg-slate-900 p-5 sm:p-6 shadow-2xl overflow-hidden relative group">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[100px] -z-10" />
-                <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                  <div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-white/10 rounded-xl text-white">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/10 rounded-xl text-white shrink-0">
                         <Palette size={20} />
                       </div>
-                      <h3 className="text-lg font-bold text-white">Theme Rollout Manager</h3>
+                      <h3 className="text-lg font-bold text-white">Theme Rollout</h3>
                     </div>
-                    <div className="flex gap-4">
-                      <div className="bg-white/5 border border-white/10 p-4 rounded-[24px]">
-                        <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1">Queue</p>
-                        <p className="text-2xl font-black text-white">{selectedWebsiteIds.length}</p>
+                    <div className="flex gap-3">
+                      <div className="flex-1 bg-white/5 border border-white/10 p-3 sm:p-4 rounded-2xl sm:rounded-[24px]">
+                        <p className="text-[8px] sm:text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1">Queue</p>
+                        <p className="text-xl sm:text-2xl font-black text-white">{selectedWebsiteIds.length}</p>
                       </div>
-                      <div className="bg-white/5 border border-white/10 p-4 rounded-[24px]">
-                        <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1">Active Preset</p>
-                        <p className="text-2xl font-black text-white">{activePreset.label}</p>
+                      <div className="flex-1 bg-white/5 border border-white/10 p-3 sm:p-4 rounded-2xl sm:rounded-[24px]">
+                        <p className="text-[8px] sm:text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-1">Theme</p>
+                        <p className="text-xl sm:text-2xl font-black text-white truncate">{activePreset.label.split(' ')[0]}</p>
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-4 xl:w-80">
+                  <div className="space-y-3 lg:w-72">
                     <select
                       value={selectedTheme}
                       onChange={(e) => setSelectedTheme(e.target.value)}
-                      className="w-full rounded-2xl bg-white/10 border border-white/20 px-4 py-3 text-sm font-bold text-white outline-none"
+                      className="w-full rounded-xl sm:rounded-2xl bg-white/10 border border-white/20 px-4 py-3 text-sm font-bold text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
                     >
                       {THEME_PRESETS.map((theme) => (
                         <option key={theme.value} value={theme.value} className="text-slate-900">{theme.label}</option>
                       ))}
                     </select>
-                    <div className="flex gap-3">
-                      <button onClick={toggleSelectAllWebsites} className="flex-1 py-3 text-xs font-bold text-white border border-white/20 rounded-2xl hover:bg-white/5 transition-all">
-                        {selectedWebsiteIds.length === websites.length ? 'Reset' : 'Select All'}
+                    <div className="flex gap-2">
+                      <button onClick={toggleSelectAllWebsites} className="flex-1 py-3 text-xs font-bold text-white border border-white/20 rounded-xl sm:rounded-2xl hover:bg-white/5 transition-all">
+                        {selectedWebsiteIds.length === (websites?.length || 0) ? 'Reset' : 'All'}
                       </button>
-                      <button onClick={handleApplyThemeToSelected} className="flex-[2] py-3 text-xs font-bold bg-white text-slate-900 rounded-2xl hover:bg-slate-100 transition-all">
-                        Apply Selection
+                      <button onClick={handleApplyThemeToSelected} className="flex-[2] py-3 text-xs font-bold bg-white text-slate-900 rounded-xl sm:rounded-2xl hover:bg-slate-100 transition-all">
+                        Apply Update
                       </button>
                     </div>
                   </div>
@@ -536,22 +540,22 @@ export default function Dashboard() {
                 <p className="text-slate-500 max-w-xs mx-auto text-sm">You haven't been assigned any websites yet. Please contact the administrator.</p>
               </div>
             ) : (
-              <div className="grid gap-6">
+              <div className="grid gap-4 sm:gap-6">
                 {websites.map((site: any) => (
-                  <div key={site._id} className="group bg-white rounded-[32px] border border-slate-200 p-6 shadow-sm hover:shadow-xl transition-all duration-500">
-                    <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-                      <div className="flex items-center gap-5">
+                  <div key={site._id} className="group bg-white rounded-[24px] sm:rounded-[32px] border border-slate-200 p-4 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-500">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-start gap-4">
                         {canChangeTheme && (
                           <input
                             type="checkbox"
                             checked={selectedWebsiteIds.includes(site._id)}
                             onChange={() => toggleWebsiteSelection(site._id)}
-                            className="w-6 h-6 rounded-lg border-slate-300 text-indigo-600 focus:ring-0 cursor-pointer"
+                            className="w-5 h-5 mt-1 rounded-lg border-slate-300 text-indigo-600 focus:ring-0 cursor-pointer shrink-0"
                           />
                         )}
-                        <div>
-                          <div className="flex items-center gap-3 mb-1.5">
-                            <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">{site.businessName}</h3>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                            <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">{site.businessName}</h3>
                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${site.isActive === false ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
                               {site.isActive === false ? 'Inactive' : 'Live'}
                             </span>
@@ -561,35 +565,35 @@ export default function Dashboard() {
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center text-sm font-medium text-slate-500">
-                            <LinkIcon size={14} className="mr-2 opacity-50" />
-                            merobusiness.com/{site.slug}
+                          <div className="flex items-center text-sm font-medium text-slate-500 truncate">
+                            <LinkIcon size={14} className="mr-2 opacity-50 shrink-0" />
+                            <span className="truncate">merobusiness.com/{site.slug}</span>
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center gap-3">
+
+                      <div className="flex items-center flex-wrap gap-2">
                         {isSuperAdmin && (
                           <button
                             onClick={() => handleToggleActive(site._id, site.isActive !== false)}
-                            className={`p-3 rounded-2xl transition-all ${site.isActive === false ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-red-600'}`}
+                            className={`p-3 rounded-2xl transition-all touch-target ${site.isActive === false ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-red-600'}`}
                             title={site.isActive === false ? 'Activate' : 'Deactivate'}
                           >
                             {site.isActive === false ? <ToggleLeft size={24} /> : <ToggleRight size={24} />}
                           </button>
                         )}
-                        <a href={`/${site.slug}`} target="_blank" rel="noreferrer" className="flex items-center bg-slate-100 text-slate-700 px-5 py-3 rounded-2xl text-sm font-bold hover:bg-slate-200 transition-all">
-                          <Globe size={18} className="mr-2" />
+                        <a href={`/${site.slug}`} target="_blank" rel="noreferrer" className="flex items-center bg-slate-100 text-slate-700 px-4 py-2.5 rounded-2xl text-sm font-bold hover:bg-slate-200 transition-all">
+                          <Globe size={16} className="mr-2" />
                           View
                         </a>
-                        <Link href={`/dashboard/${site._id}`} className="flex items-center bg-indigo-600 text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all">
-                          <Settings size={18} className="mr-2" />
+                        <Link href={`/dashboard/${site._id}`} className="flex items-center bg-indigo-600 text-white px-4 py-2.5 rounded-2xl text-sm font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all">
+                          <Settings size={16} className="mr-2" />
                           Build
                         </Link>
                         {isSuperAdmin && (
                           <button 
                             onClick={() => setDeleteModal({ isOpen: true, id: site._id, name: site.businessName })}
-                            className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"
+                            className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all touch-target ml-auto"
                           >
                             <Trash2 size={20} />
                           </button>
@@ -729,7 +733,7 @@ export default function Dashboard() {
 
         {/* --- CUSTOMERS TAB --- */}
         {activeTab === 'customers' && (
-          <div className="bg-white rounded-[32px] shadow-xl p-8 border border-white">
+          <div className="bg-white rounded-[24px] sm:rounded-[32px] shadow-xl p-4 sm:p-8 border border-white">
             <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
               <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
                 <Users size={20} />
@@ -742,76 +746,100 @@ export default function Dashboard() {
             ) : !customersData?.customers?.length ? (
               <div className="py-12 text-center text-slate-500">No customers registered for your stores yet.</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b-2 border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      <th className="py-4 px-4 font-bold">Customer Name</th>
-                      <th className="py-4 px-4 font-bold">Email</th>
-                      <th className="py-4 px-4 font-bold">Phone</th>
-                      <th className="py-4 px-4 font-bold">Delivery Location</th>
-                      <th className="py-4 px-4 font-bold">Registered</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50 text-sm">
-                    {customersData.customers.map((c: any) => {
-                      const isExpanded = expandedCustomerIds.includes(c._id);
-                      return (
-                        <React.Fragment key={c._id}>
-                          <tr className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setExpandedCustomerIds(prev => isExpanded ? prev.filter(id => id !== c._id) : [...prev, c._id])}>
-                            <td className="py-4 px-4 font-bold text-slate-800">
-                              <div className="flex items-center gap-2">
-                                <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}><ChevronRight size={16} className="text-slate-400" /></div>
-                                {c.name || 'N/A'}
-                              </div>
-                            </td>
-                            <td className="py-4 px-4 text-slate-600 font-medium">{c.email}</td>
-                            <td className="py-4 px-4 text-slate-600">{c.phone || '-'}</td>
-                            <td className="py-4 px-4 text-slate-600 max-w-xs truncate" title={c.deliveryAddress}>
-                              {c.deliveryAddress || '-'}
-                            </td>
-                            <td className="py-4 px-4">
-                              <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-bold rounded-lg text-xs">{c.orders?.length || 0} Orders</span>
-                            </td>
-                          </tr>
-                          {isExpanded && c.orders?.length > 0 && (
-                            <tr className="bg-slate-50/50">
-                              <td colSpan={5} className="py-4 px-10">
-                                <div className="space-y-3">
-                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Order History</h4>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {c.orders.map((o: any) => (
-                                      <div key={o._id} className="bg-white border border-slate-100 rounded-xl p-3 flex items-center gap-3">
-                                        {o.product?.imageUrl ? (
-                                          <img src={o.product.imageUrl} alt="img" className="w-10 h-10 object-cover rounded-lg shadow-sm" />
-                                        ) : (
-                                          <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200" />
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-xs font-bold text-slate-800 truncate">{o.product?.name || 'Unknown Item'}</p>
-                                          <p className="text-[10px] text-slate-400 font-medium">{new Date(o.createdAt).toLocaleDateString()} • Qty: {o.product?.quantity || 1}</p>
-                                        </div>
-                                        <span className="text-xs font-bold text-emerald-600">{o.product?.price}</span>
-                                      </div>
-                                    ))}
-                                  </div>
+              <>
+                {/* Mobile cards (< md) */}
+                <div className="md:hidden space-y-3">
+                  {customersData.customers.map((c: any) => (
+                    <div key={c._id} className="border border-slate-100 rounded-2xl p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="font-bold text-slate-800">{c.name || 'N/A'}</p>
+                        <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-bold rounded-lg text-xs">{c.orders?.length || 0} Orders</span>
+                      </div>
+                      <p className="text-sm text-slate-500 font-mono truncate">{c.email}</p>
+                      {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
+                      {c.deliveryAddress && <p className="text-xs text-slate-400 truncate">{c.deliveryAddress}</p>}
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop table (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b-2 border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <th className="py-4 px-4 font-bold">Customer Name</th>
+                        <th className="py-4 px-4 font-bold">Email</th>
+                        <th className="py-4 px-4 font-bold">Phone</th>
+                        <th className="py-4 px-4 font-bold">Delivery Location</th>
+                        <th className="py-4 px-4 font-bold">Registered</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 text-sm">
+                      {customersData.customers.map((c: any) => {
+                        const isExpanded = expandedCustomerIds.includes(c._id);
+                        return (
+                          <React.Fragment key={c._id}>
+                            <tr className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setExpandedCustomerIds(prev => isExpanded ? prev.filter(id => id !== c._id) : [...prev, c._id])}>
+                              <td className="py-4 px-4 font-bold text-slate-800">
+                                <div className="flex items-center gap-2">
+                                  <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}><ChevronRight size={16} className="text-slate-400" /></div>
+                                  {c.name || 'N/A'}
                                 </div>
                               </td>
+                              <td className="py-4 px-4 text-slate-600 font-medium">{c.email}</td>
+                              <td className="py-4 px-4 text-slate-600">{c.phone || '-'}</td>
+                              <td className="py-4 px-4 text-slate-600 max-w-xs truncate" title={c.deliveryAddress}>
+                                {c.deliveryAddress || '-'}
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-bold rounded-lg text-xs">{c.orders?.length || 0} Orders</span>
+                              </td>
                             </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                            {isExpanded && c.orders?.length > 0 && (
+                              <tr className="bg-slate-50/50">
+                                <td colSpan={5} className="py-4 px-10">
+                                  <div className="space-y-3">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Order History</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                      {c.orders.map((o: any) => (
+                                        <div key={o._id} className="bg-white border border-slate-100 rounded-xl p-3 flex items-center gap-3">
+                                          {o.product?.imageUrl ? (
+                                            <div className="relative w-10 h-10 rounded-lg overflow-hidden shadow-sm">
+                                              <Image 
+                                                src={o.product.imageUrl} 
+                                                alt="img" 
+                                                fill
+                                                className="object-cover" 
+                                              />
+                                            </div>
+                                          ) : (
+                                            <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200" />
+                                          )}
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-slate-800 truncate">{o.product?.name || 'Unknown Item'}</p>
+                                            <p className="text-[10px] text-slate-400 font-medium">{new Date(o.createdAt).toLocaleDateString()} • Qty: {o.product?.quantity || 1}</p>
+                                          </div>
+                                          <span className="text-xs font-bold text-emerald-600">{o.product?.price}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         )}
 
         {/* --- ORDERS TAB --- */}
         {activeTab === 'orders' && (
-          <div className="bg-white rounded-[32px] shadow-xl p-8 border border-white">
+          <div className="bg-white rounded-[24px] sm:rounded-[32px] shadow-xl p-4 sm:p-8 border border-white">
             <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
               <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
                 <ShoppingCart size={20} />
@@ -824,61 +852,45 @@ export default function Dashboard() {
             ) : !ordersData?.orders?.length ? (
               <div className="py-12 text-center text-slate-500">No orders tracked for your stores yet.</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b-2 border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      <th className="py-4 px-4 font-bold">Date & Time</th>
-                      <th className="py-4 px-4 font-bold">Product Ordered</th>
-                      <th className="py-4 px-4 font-bold text-right">Price</th>
-                      <th className="py-4 px-4 font-bold">Customer</th>
-                      <th className="py-4 px-4 font-bold">Payment</th>
-                      <th className="py-4 px-4 font-bold">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50 text-sm">
-                    {ordersData.orders.map((o: any) => (
-                      <tr key={o._id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-4 px-4 text-slate-500 font-medium whitespace-nowrap">
-                          {new Date(o.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            {o.product?.imageUrl ? (
-                              <img src={o.product.imageUrl} alt="img" className="w-10 h-10 object-cover rounded-xl shadow-sm border border-slate-100" />
-                            ) : (
-                              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200"></div>
-                            )}
-                            <div>
-                               <span className="font-bold text-slate-800 line-clamp-1">{o.product?.name || 'Unknown Item'}</span>
-                               <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded mt-0.5 inline-block pr-1"><span className="text-slate-300">QTY:</span> {o.product?.quantity || 1} • {o.method}</span>
-                            </div>
+              <>
+                {/* Mobile cards */}
+                <div className="md:hidden space-y-3">
+                  {ordersData.orders.map((o: any) => (
+                    <div key={o._id} className="border border-slate-100 rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center gap-3">
+                        {o.product?.imageUrl ? (
+                          <div className="relative w-12 h-12 rounded-xl overflow-hidden shadow-sm border border-slate-100">
+                            <Image 
+                              src={o.product.imageUrl} 
+                              alt="img" 
+                              fill 
+                              className="object-cover" 
+                            />
                           </div>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-black text-xs">
-                            {o.product?.price || '-'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <p className="font-bold text-slate-800 max-w-[120px] truncate">{o.customerId?.name || 'Guest'}</p>
-                          <p className="text-[10px] text-slate-500 font-medium max-w-[120px] truncate" title={o.customerId?.email}>{o.customerId?.email}</p>
-                        </td>
-                        <td className="py-4 px-4">
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-slate-100" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-slate-800 truncate">{o.product?.name || 'Unknown'}</p>
+                          <p className="text-xs text-slate-400">{new Date(o.createdAt).toLocaleDateString()} · Qty {o.product?.quantity || 1}</p>
+                        </div>
+                        <span className="text-sm font-black text-emerald-600 shrink-0">{o.product?.price}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-slate-700 truncate">{o.customerId?.name || 'Guest'}</p>
+                        <div className="flex gap-2">
                           <select
                             value={o.paymentMethod || 'COD'}
                             onChange={(e) => updateOrderStatus(o._id, 'paymentMethod', e.target.value)}
-                            className="bg-slate-50 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer w-28"
+                            className="bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg px-2 py-1 outline-none w-24"
                           >
-                            <option value="COD">Cash on Delivery</option>
-                            <option value="ONLINE_PAYMENT">Online Payment</option>
+                            <option value="COD">COD</option>
+                            <option value="ONLINE_PAYMENT">Online</option>
                           </select>
-                        </td>
-                        <td className="py-4 px-4">
                           <select
                             value={o.status || 'PLACED'}
                             onChange={(e) => updateOrderStatus(o._id, 'status', e.target.value)}
-                            className={`border text-[11px] font-bold rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 w-28 cursor-pointer ${
+                            className={`border text-[10px] font-bold rounded-lg px-2 py-1 outline-none w-24 ${
                               o.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
                               o.status === 'CANCELLED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                               o.status === 'SHIPPED' || o.status === 'ON_THE_WAY' ? 'bg-blue-50 text-blue-700 border-blue-200' :
@@ -894,12 +906,96 @@ export default function Dashboard() {
                             <option value="DELIVERED">Delivered</option>
                             <option value="CANCELLED">Cancelled</option>
                           </select>
-                        </td>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b-2 border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <th className="py-4 px-4 font-bold">Date &amp; Time</th>
+                        <th className="py-4 px-4 font-bold">Product Ordered</th>
+                        <th className="py-4 px-4 font-bold text-right">Price</th>
+                        <th className="py-4 px-4 font-bold">Customer</th>
+                        <th className="py-4 px-4 font-bold">Payment</th>
+                        <th className="py-4 px-4 font-bold">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 text-sm">
+                      {ordersData.orders.map((o: any) => (
+                        <tr key={o._id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-4 px-4 text-slate-500 font-medium whitespace-nowrap">
+                            {new Date(o.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-3">
+                              {o.product?.imageUrl ? (
+                                <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-sm border border-slate-100">
+                                  <Image 
+                                    src={o.product.imageUrl} 
+                                    alt="img" 
+                                    fill
+                                    className="object-cover" 
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200"></div>
+                              )}
+                              <div>
+                                 <span className="font-bold text-slate-800 line-clamp-1">{o.product?.name || 'Unknown Item'}</span>
+                                 <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded mt-0.5 inline-block pr-1"><span className="text-slate-300">QTY:</span> {o.product?.quantity || 1} • {o.method}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-black text-xs">
+                              {o.product?.price || '-'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <p className="font-bold text-slate-800 max-w-[120px] truncate">{o.customerId?.name || 'Guest'}</p>
+                            <p className="text-[10px] text-slate-500 font-medium max-w-[120px] truncate" title={o.customerId?.email}>{o.customerId?.email}</p>
+                          </td>
+                          <td className="py-4 px-4">
+                            <select
+                              value={o.paymentMethod || 'COD'}
+                              onChange={(e) => updateOrderStatus(o._id, 'paymentMethod', e.target.value)}
+                              className="bg-slate-50 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer w-28"
+                            >
+                              <option value="COD">Cash on Delivery</option>
+                              <option value="ONLINE_PAYMENT">Online Payment</option>
+                            </select>
+                          </td>
+                          <td className="py-4 px-4">
+                            <select
+                              value={o.status || 'PLACED'}
+                              onChange={(e) => updateOrderStatus(o._id, 'status', e.target.value)}
+                              className={`border text-[11px] font-bold rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 w-28 cursor-pointer ${
+                                o.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                                o.status === 'CANCELLED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                o.status === 'SHIPPED' || o.status === 'ON_THE_WAY' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}
+                            >
+                              <option value="PLACED">Placed</option>
+                              <option value="CONFIRMED">Confirmed</option>
+                              <option value="PACKED">Packed</option>
+                              <option value="PICKED">Picked</option>
+                              <option value="SHIPPED">Shipped</option>
+                              <option value="ON_THE_WAY">On The Way</option>
+                              <option value="DELIVERED">Delivered</option>
+                              <option value="CANCELLED">Cancelled</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -918,7 +1014,7 @@ export default function Dashboard() {
               <button onClick={() => setIsProfileModalOpen(false)} className="text-slate-400 hover:text-slate-900"><X /></button>
             </div>
             
-            <form onSubmit={handleProfileSubmit} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
+            <form onSubmit={handleProfileSubmit} className="p-5 sm:p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
               {userProfile?.pendingProfileChanges && Object.keys(userProfile.pendingProfileChanges).length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
                   <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />

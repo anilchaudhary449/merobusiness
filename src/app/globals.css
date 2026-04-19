@@ -8,10 +8,34 @@
     --foreground: 222.2 84% 4.9%;
   }
 
+  html {
+    /* Prevent horizontal scroll on all mobile devices */
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-white text-gray-900;
+    /* Support iOS safe areas (notch / home indicator) */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 }
+
+/* Minimum 44px touch targets for interactive elements */
+@layer utilities {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Padding inside safe area for fixed/sticky footers on iOS */
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .pt-safe {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+}
+
 
 /* Custom scrollbar for preview site */
 .custom-scrollbar::-webkit-scrollbar {

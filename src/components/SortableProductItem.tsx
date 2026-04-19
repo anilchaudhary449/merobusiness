@@ -43,11 +43,11 @@ export default function SortableProductItem({ id, index, product, updateProduct,
     >
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center space-x-2">
-          {/* Drag Handle */}
+          {/* Drag Handle — larger touch target for mobile */}
           <div 
             {...attributes} 
             {...listeners} 
-            className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-200 rounded-md text-gray-400 group-hover:text-gray-600 transition-colors"
+            className="cursor-grab active:cursor-grabbing p-2 hover:bg-gray-200 rounded-lg text-gray-400 group-hover:text-gray-600 transition-colors touch-target flex items-center justify-center"
           >
             <GripVertical size={18} />
           </div>
@@ -56,7 +56,7 @@ export default function SortableProductItem({ id, index, product, updateProduct,
         
         <button 
           onClick={() => removeProduct(index)}
-          className="text-gray-400 hover:text-red-500 transition-colors p-1"
+          className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50 touch-target flex items-center justify-center"
         >
           <Trash2 size={16} />
         </button>
@@ -67,21 +67,21 @@ export default function SortableProductItem({ id, index, product, updateProduct,
           type="text" 
           value={product.name} 
           onChange={(e) => updateProduct(index, 'name', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
+          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
           placeholder="Product Name"
         />
         <input 
           type="text" 
           value={product.price} 
           onChange={(e) => updateProduct(index, 'price', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
+          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
           placeholder="Price (e.g. Rs. 1500)"
         />
         <div className="grid grid-cols-2 gap-3">
           <select
             value={product.sizeEU || ''}
             onChange={(e) => updateProduct(index, 'sizeEU', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30 bg-white"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30 bg-white"
           >
             {EU_SIZE_OPTIONS.map((size) => (
               <option key={size || 'empty-eu'} value={size}>
@@ -92,7 +92,7 @@ export default function SortableProductItem({ id, index, product, updateProduct,
           <select
             value={product.sizeINT || ''}
             onChange={(e) => updateProduct(index, 'sizeINT', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30 bg-white"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30 bg-white"
           >
             {INT_SIZE_OPTIONS.map((size) => (
               <option key={size || 'empty-int'} value={size}>
@@ -109,21 +109,21 @@ export default function SortableProductItem({ id, index, product, updateProduct,
             type="text"
             value={product.dimensions?.length || ''}
             onChange={(e) => updateProduct(index, 'dimensions.length', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
             placeholder="Length"
           />
           <input
             type="text"
             value={product.dimensions?.width || ''}
             onChange={(e) => updateProduct(index, 'dimensions.width', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
             placeholder="Width"
           />
           <input
             type="text"
             value={product.dimensions?.height || ''}
             onChange={(e) => updateProduct(index, 'dimensions.height', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-accent/30"
             placeholder="Height"
           />
         </div>

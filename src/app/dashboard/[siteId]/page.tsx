@@ -162,6 +162,7 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
+  const [activeBuilderTab, setActiveBuilderTab] = useState<'edit' | 'preview'>('edit');
   const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
   const router = useRouter();
 
@@ -370,9 +371,25 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
   }
 
   return (
-    <div className="h-screen flex flex-col md:flex-row bg-gray-50 overflow-hidden">
+    <div className="h-screen flex flex-col md:flex-row bg-gray-50 overflow-hidden pb-safe">
+      {/* Mobile Tab Switcher */}
+      <div className="md:hidden flex bg-white border-b border-gray-200 p-1 shrink-0">
+        <button
+          onClick={() => setActiveBuilderTab('edit')}
+          className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeBuilderTab === 'edit' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500'}`}
+        >
+          Editor
+        </button>
+        <button
+          onClick={() => setActiveBuilderTab('preview')}
+          className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeBuilderTab === 'preview' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500'}`}
+        >
+          Live Preview
+        </button>
+      </div>
+
       {/* Editor Sidebar */}
-      <div className="w-full md:w-[400px] bg-white border-r border-gray-200 flex flex-col h-[50vh] md:h-screen">
+      <div className={`w-full md:w-[400px] bg-white border-r border-gray-200 flex flex-col h-full md:h-screen ${activeBuilderTab === 'edit' ? 'flex' : 'hidden md:flex'}`}>
         <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white z-10 shadow-sm relative">
           <Link href="/dashboard" className="text-gray-500 hover:text-gray-900 transition-colors">
             <ArrowLeft size={20} />
@@ -1245,7 +1262,7 @@ export default function Builder({ params }: { params: Promise<{ siteId: string }
       </div>
 
       {/* Live Preview Area */}
-      <div className="flex-1 flex flex-col bg-gray-100 h-[50vh] md:h-screen">
+      <div className={`flex-1 flex flex-col bg-gray-100 h-full md:h-screen ${activeBuilderTab === 'preview' ? 'flex' : 'hidden md:flex'}`}>
         <div className="p-3 bg-white border-b border-gray-200 flex justify-center space-x-2 hidden md:flex">
           <button
             onClick={() => setViewMode('desktop')}

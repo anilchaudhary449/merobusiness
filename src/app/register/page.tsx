@@ -214,11 +214,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020617] relative overflow-hidden py-10">
+    <div className="min-h-screen bg-[#020617] relative overflow-hidden py-8 sm:py-10 px-4">
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full" />
 
-      <div className="relative z-10 w-full max-w-2xl mx-auto px-4">
+      <div className="relative z-10 w-full max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20 mb-4">
@@ -228,7 +228,7 @@ export default function RegisterPage() {
           <p className="text-slate-400">Apply for an admin account on MeroBusiness</p>
         </div>
 
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-8 rounded-[32px] shadow-2xl">
+        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-5 sm:p-8 rounded-[28px] sm:rounded-[32px] shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
 
             {/* Username + Email Preview */}
@@ -243,7 +243,7 @@ export default function RegisterPage() {
                   required
                   value={form.username}
                   onChange={e => setForm({ ...form, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
-                  className="block w-full pl-11 pr-11 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                  className="block w-full pl-11 pr-11 py-3.5 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-base"
                   placeholder="e.g. john_smith"
                 />
                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
@@ -279,7 +279,7 @@ export default function RegisterPage() {
                   required
                   value={form.businessName}
                   onChange={e => setForm({ ...form, businessName: e.target.value })}
-                  className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                  className="block w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-base"
                   placeholder="e.g. Nepal Crafts Pvt. Ltd."
                 />
               </div>
@@ -301,7 +301,7 @@ export default function RegisterPage() {
                     required
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^0-9]/g, '') })}
-                    className="block w-full px-4 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium tracking-wide"
+                    className="block w-full px-4 py-3.5 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium tracking-wide text-base"
                     placeholder="98XXXXXXXX"
                   />
                 </div>
@@ -329,7 +329,7 @@ export default function RegisterPage() {
                     required
                     value={form.panNumber}
                     onChange={e => setForm({ ...form, panNumber: e.target.value })}
-                    className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                    className="block w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-base"
                     placeholder="e.g. 123456789"
                   />
                 </div>
@@ -440,7 +440,7 @@ export default function RegisterPage() {
           </form>
         </div>
 
-        <p className="text-center mt-6 text-slate-500 text-sm">
+        <p className="text-center mt-6 text-slate-500 text-sm pb-safe">
           Already have an account?{' '}
           <Link href="/login" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
             Sign In

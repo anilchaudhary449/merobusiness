@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { 
   Phone, MessageCircle, MapPin, Search, ExternalLink, 
   Mail, PhoneCall, Globe, Music, Heart, Star, HelpCircle, 
   User, PlusCircle, LogIn, ChevronRight, Send, Loader2,
   Lock, CheckCircle2, XCircle, ArrowRight, LogOut,
-  BadgeCheck, Clock, X, AtSign, Calendar, Package, Settings
+  BadgeCheck, Clock, X, AtSign, Calendar, Package, Settings, Menu, Layout
 } from 'lucide-react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -55,6 +56,7 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
     currentPassword: '', newPassword: '', confirmNewPassword: ''
   });
   const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Auth Form States
   const [authForm, setAuthForm] = useState({
@@ -609,7 +611,55 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
             <MessageCircle size={14} />
             <span className="hidden sm:inline">Order Now</span>
           </a>
+          
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-xl bg-slate-50 border border-slate-100 text-slate-600 hover:bg-slate-100 transition-all"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
+
+        {/* Mobile Menu Backdrop & Panel */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-[60] md:hidden">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setMobileMenuOpen(false)} />
+            <div className="absolute top-0 right-0 bottom-0 w-[280px] bg-white shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col p-8 pt-24 space-y-8">
+               <button 
+                 onClick={() => setMobileMenuOpen(false)}
+                 className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 transition-all"
+               >
+                 <X size={24} />
+               </button>
+               
+               <div className="space-y-6">
+                 <a href="#hero" onClick={() => setMobileMenuOpen(false)} className="block text-2xl font-black text-slate-900 border-b border-slate-50 pb-4">Home</a>
+                 <a href="#products" onClick={() => setMobileMenuOpen(false)} className="block text-2xl font-black text-slate-900 border-b border-slate-50 pb-4">Products</a>
+                 <a href="#about" onClick={() => setMobileMenuOpen(false)} className="block text-2xl font-black text-slate-900 border-b border-slate-50 pb-4">About</a>
+               </div>
+
+               {!session?.user && (
+                 <button 
+                   onClick={() => { setMobileMenuOpen(false); setAuthModal('login'); }}
+                   className="w-full flex items-center justify-center gap-3 py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-xl shadow-slate-900/20"
+                 >
+                   <LogIn size={20} />
+                   Log In to Site
+                 </button>
+               )}
+
+               <div className="mt-auto space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Powered by</p>
+                   <Link href="/" className="flex items-center space-x-2 group">
+                     <div className="bg-indigo-600 p-1.5 rounded-lg text-white group-hover:scale-110 transition-transform">
+                       <Layout size={16} />
+                     </div>
+                     <span className="text-lg font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">MeroBusiness</span>
+                   </Link>
+               </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}

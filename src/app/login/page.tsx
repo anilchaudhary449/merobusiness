@@ -66,22 +66,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#020617] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-[#020617] relative overflow-hidden px-4">
       {/* Decorative Gradients */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full" />
       
-      <div className="w-full max-w-md p-8 relative z-10">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20 mb-6">
-            <Building2 className="text-white w-8 h-8" />
+      <div className="w-full max-w-md relative z-10">
+        <div className="text-center mb-8 sm:mb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20 mb-5 sm:mb-6">
+            <Building2 className="text-white w-7 h-7 sm:w-8 sm:h-8" />
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2">MeroBusiness</h1>
-          <p className="text-slate-400">Admin Authentication Portal</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">MeroBusiness</h1>
+          <p className="text-slate-400 text-sm sm:text-base">Admin Authentication Portal</p>
         </div>
 
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-8 rounded-[32px] shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-5 sm:p-8 rounded-[28px] sm:rounded-[32px] shadow-2xl">
+          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2 font-mono uppercase tracking-wider text-[10px]">Email Address</label>
               <div className="relative group">
@@ -93,8 +93,9 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-300"
+                  className="block w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-300 text-base"
                   placeholder="name@business.com"
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -110,8 +111,9 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-300"
+                  className="block w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-300 text-base"
                   placeholder="••••••••"
+                  autoComplete="current-password"
                 />
               </div>
             </div>
@@ -119,7 +121,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full relative group overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-500/20 transition-all duration-300 disabled:opacity-70 flex items-center justify-center space-x-2"
+              className="w-full relative group overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-500/20 transition-all duration-300 disabled:opacity-70 flex items-center justify-center space-x-2 touch-target"
             >
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -139,7 +141,7 @@ export default function LoginPage() {
             Register here
           </Link>
         </p>
-        <p className="text-center mt-2 text-slate-600 text-xs">
+        <p className="text-center mt-2 text-slate-600 text-xs pb-safe">
           System access restricted to authorized personnel only.
         </p>
       </div>

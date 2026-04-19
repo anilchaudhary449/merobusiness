@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { 
-  Users, Plus, Trash2, Edit2, Shield, Globe, 
+import {
+  Users, Plus, Trash2, Edit2, Shield, Globe,
   Check, X, Loader2, LogOut, LayoutDashboard,
   Lock, Mail, User as UserIcon, Palette,
   ClipboardList, CheckCircle2, XCircle, Eye, Phone, FileText, Building2, Clock,
@@ -21,7 +22,7 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 export default function SuperAdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  
+
   const { data: admins, mutate: mutateAdmins } = useSWR('/api/admin/users', fetcher);
   const { data: customers, mutate: mutateCustomers } = useSWR('/api/admin/customers', fetcher);
   const { data: credentialRequests, mutate: mutateCredentialRequests } = useSWR('/api/admin/credential-requests', fetcher);
@@ -29,7 +30,7 @@ export default function SuperAdminDashboard() {
   const { data: pendingRegistrations, mutate: mutatePending } = useSWR('/api/admin/registrations', fetcher);
   const { data: profileApprovals, mutate: mutateProfileApprovals } = useSWR('/api/admin/profile-approvals', fetcher);
   const { data: tickets, mutate: mutateTickets } = useSWR('/api/support', fetcher, { refreshInterval: 3000 });
-  
+
   const [activeTab, setActiveTab] = useState<'admins' | 'customers' | 'resets' | 'pending' | 'approvals' | 'support'>('admins');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<any>(null);
@@ -74,17 +75,25 @@ export default function SuperAdminDashboard() {
     }
   }, [status, session, router]);
 
+  const activeTicket = useMemo(() => {
+    return Array.isArray(tickets) ? tickets.find((t: any) => t._id === activeTicketId) : null;
+  }, [tickets, activeTicketId]);
+
+  const activeAdmin = useMemo(() => {
+    return activeTicket?.adminId;
+  }, [activeTicket]);
+
   const handleOpenModal = (admin: any = null) => {
     if (admin) {
       setEditingAdmin(admin);
       let code = '+977';
       let phoneNum = admin.phone || '';
       if (phoneNum.startsWith('+')) {
-         const parts = phoneNum.split(' ');
-         if (parts.length > 1) {
-            code = parts[0];
-            phoneNum = parts.slice(1).join(' ');
-         }
+        const parts = phoneNum.split(' ');
+        if (parts.length > 1) {
+          code = parts[0];
+          phoneNum = parts.slice(1).join(' ');
+        }
       }
       setFormData({
         username: admin.username || '',
@@ -130,7 +139,7 @@ export default function SuperAdminDashboard() {
 
     const phoneDigits = formData.phone.replace(/[^0-9]/g, '');
     const selectedCountry = COUNTRIES.find(c => c.dial_code === formData.countryCode);
-    
+
     if (selectedCountry) {
       const fullNumber = `${formData.countryCode}${phoneDigits}`;
       if (!isValidPhoneNumber(fullNumber, selectedCountry.code as any)) {
@@ -148,10 +157,10 @@ export default function SuperAdminDashboard() {
     try {
       const url = editingAdmin ? `/api/admin/users/${editingAdmin._id}` : '/api/admin/users';
       const method = editingAdmin ? 'PATCH' : 'POST';
-      const payload: any = { 
-        ...formData, 
+      const payload: any = {
+        ...formData,
         phone: `${formData.countryCode} ${phoneDigits}`,
-        permissions: { canChangeTheme: formData.canChangeTheme } 
+        permissions: { canChangeTheme: formData.canChangeTheme }
       };
       if (!formData.password && editingAdmin) delete payload.password;
 
@@ -343,22 +352,22 @@ export default function SuperAdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Navbar */}
-      <nav className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center space-x-4">
-          <div className="bg-indigo-600 p-2 rounded-xl text-white">
-            <Shield size={24} />
+      <nav className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-30">
+        <div className="flex items-center space-x-3">
+          <div className="bg-indigo-600 p-2 rounded-xl text-white shrink-0">
+            <Shield size={20} />
           </div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Super Control Panel</h1>
+          <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight">Super Control Panel</h1>
         </div>
-        <div className="flex items-center space-x-4">
-          <span className="text-sm font-medium text-slate-500">{session?.user?.email}</span>
-          <button onClick={() => router.push('/dashboard')} className="flex items-center text-sm font-semibold text-slate-700 hover:text-indigo-600 px-3 py-2 rounded-lg transition-colors">
-            <LayoutDashboard size={18} className="mr-2" />
-            Live View
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <span className="hidden sm:block text-sm font-medium text-slate-500">{session?.user?.email}</span>
+          <button onClick={() => router.push('/dashboard')} className="flex items-center text-sm font-semibold text-slate-700 hover:text-indigo-600 p-2 sm:px-3 sm:py-2 rounded-lg transition-colors" title="Live View">
+            <LayoutDashboard size={18} className="sm:mr-2" />
+            <span className="hidden sm:inline">Live View</span>
           </button>
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
-            className="p-2.5 bg-white border border-red-100 text-red-500 rounded-2xl hover:bg-red-50 transition-all"
+            className="p-2.5 bg-white border border-red-100 text-red-500 rounded-2xl hover:bg-red-50 transition-all touch-target"
             title="Sign Out"
           >
             <LogOut size={20} />
@@ -366,29 +375,31 @@ export default function SuperAdminDashboard() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto p-8">
+      <main className="max-w-7xl mx-auto p-4 sm:p-8">
         {/* Tab Navigation */}
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-2 mb-6 sm:mb-8 overflow-x-auto scrollbar-none pb-1">
           <button
             onClick={() => setActiveTab('admins')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'admins' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'admins' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
           >
             <Users size={16} />
-            Admin Accounts
+            <span className="hidden xs:inline sm:inline">Admin Accounts</span>
+            <span className="xs:hidden sm:hidden">Admins</span>
           </button>
           <button
             onClick={() => setActiveTab('customers')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'customers' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'customers' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
           >
             <UserIcon size={16} />
             Customers
           </button>
           <button
             onClick={() => setActiveTab('resets')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'resets' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'resets' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
           >
             <Lock size={16} />
-            Password Resets
+            <span className="hidden sm:inline">Password Resets</span>
+            <span className="sm:hidden">Resets</span>
             {credentialRequests?.filter((r: any) => r.status === 'PENDING').length > 0 && (
               <span className={`px-2 py-0.5 rounded-full text-xs font-black ${activeTab === 'resets' ? 'bg-white text-indigo-600' : 'bg-rose-500 text-white'}`}>
                 {credentialRequests.filter((r: any) => r.status === 'PENDING').length}
@@ -397,10 +408,11 @@ export default function SuperAdminDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('pending')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'pending' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'pending' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
           >
             <ClipboardList size={16} />
-            Pending Applications
+            <span className="hidden sm:inline">Pending Applications</span>
+            <span className="sm:hidden">Pending</span>
             {pendingCount > 0 && (
               <span className={`px-2 py-0.5 rounded-full text-xs font-black ${activeTab === 'pending' ? 'bg-white text-indigo-600' : 'bg-red-500 text-white'}`}>
                 {pendingCount}
@@ -409,10 +421,11 @@ export default function SuperAdminDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('approvals')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'approvals' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'approvals' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
           >
             <UserCog size={16} />
-            Profile Updates
+            <span className="hidden sm:inline">Profile Updates</span>
+            <span className="sm:hidden">Approvals</span>
             {approvalsCount > 0 && (
               <span className={`px-2 py-0.5 rounded-full text-xs font-black ${activeTab === 'approvals' ? 'bg-white text-indigo-600' : 'bg-amber-500 text-white'}`}>
                 {approvalsCount}
@@ -421,10 +434,10 @@ export default function SuperAdminDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('support')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'support' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'support' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
           >
             <MessageSquare size={16} />
-            Support Center
+            Support
             {tickets?.filter((t: any) => t.status === 'OPEN').length > 0 && (
               <span className={`px-2 py-0.5 rounded-full text-xs font-black ${activeTab === 'support' ? 'bg-white text-indigo-600' : 'bg-red-500 text-white'}`}>
                 {tickets.filter((t: any) => t.status === 'OPEN').length}
@@ -436,54 +449,54 @@ export default function SuperAdminDashboard() {
         {/* ─── Tab: Admin Accounts ─── */}
         {activeTab === 'admins' && (
           <>
-            <header className="flex items-center justify-between mb-8">
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-3xl font-bold text-slate-900">Admin Management</h2>
-                <p className="text-slate-500 mt-1 text-sm font-medium">Provision accounts, manage site ownership and set permissions.</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Admin Management</h2>
+                <p className="text-slate-500 mt-1 text-sm font-medium">Provision accounts and manage site ownership.</p>
               </div>
               <button
                 onClick={() => handleOpenModal()}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-2xl shadow-lg shadow-indigo-600/20 transition-all flex items-center space-x-2"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-2xl shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center space-x-2"
               >
                 <Plus size={20} />
-                <span>Register New Admin</span>
+                <span>Register Admin</span>
               </button>
             </header>
 
             <div className="grid grid-cols-1 gap-6">
               {Array.isArray(admins) && admins.map((admin: any) => (
-                <div key={admin._id} className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
-                  <div className="flex items-center space-x-6">
-                    <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">
+                <div key={admin._id} className="bg-white border border-slate-200 rounded-[28px] p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+                  <div className="flex items-center space-x-4 sm:space-x-6">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors shrink-0">
                       <UserIcon size={24} />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-lg">{admin.name || 'Unnamed Admin'}</h3>
-                      <div className="flex items-center space-x-3 text-sm text-slate-500 mt-1 font-medium font-mono uppercase tracking-tight">
-                        <Mail size={14} className="text-slate-400" />
-                        <span>{admin.email}</span>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-slate-900 text-base sm:text-lg truncate">{admin.name || 'Unnamed Admin'}</h3>
+                      <div className="flex items-center space-x-2 text-xs sm:text-sm text-slate-500 mt-1 font-medium truncate">
+                        <Mail size={14} className="text-slate-400 shrink-0" />
+                        <span className="truncate">{admin.email}</span>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-3">
-                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center ${admin.permissions?.canChangeTheme ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                        <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center ${admin.permissions?.canChangeTheme ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
                           <Palette size={12} className="mr-1.5" />
-                          Theme Edit: {admin.permissions?.canChangeTheme ? 'Enabled' : 'Locked'}
+                          Theme: {admin.permissions?.canChangeTheme ? 'On' : 'Off'}
                         </span>
-                        <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-bold uppercase tracking-wider flex items-center">
+                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 text-[9px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center">
                           <Globe size={12} className="mr-1.5" />
-                          {admin.assignedSiteIds?.length || 0} Assigned Sites
+                          {admin.assignedSiteIds?.length || 0} Sites
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button onClick={() => setViewingAdmin(admin)} className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="View Admin Info">
-                      <Info size={20} />
+                  <div className="flex items-center justify-end sm:justify-start space-x-1 border-t sm:border-t-0 pt-3 sm:pt-0">
+                    <button onClick={() => setViewingAdmin(admin)} className="p-2.5 sm:p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="View Admin Info">
+                      <Info size={18} />
                     </button>
-                    <button onClick={() => handleOpenModal(admin)} className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit Admin">
-                      <Edit2 size={20} />
+                    <button onClick={() => handleOpenModal(admin)} className="p-2.5 sm:p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit Admin">
+                      <Edit2 size={18} />
                     </button>
-                    <button onClick={() => handleDelete(admin._id)} className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete Admin">
-                      <Trash2 size={20} />
+                    <button onClick={() => handleDelete(admin._id)} className="p-2.5 sm:p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete Admin">
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
@@ -502,43 +515,43 @@ export default function SuperAdminDashboard() {
         {activeTab === 'customers' && (
           <>
             <header className="mb-8">
-              <h2 className="text-3xl font-bold text-slate-900">Customer Base</h2>
-              <p className="text-slate-500 mt-1 text-sm font-medium">Manage store customers, view demographics, and oversee account status.</p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Customer Base</h2>
+              <p className="text-slate-500 mt-1 text-sm font-medium">Manage store customers and oversee accounts.</p>
             </header>
 
             <div className="grid grid-cols-1 gap-6">
               {Array.isArray(customers) && customers.map((customer: any) => (
-                <div key={customer._id} className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
-                  <div className="flex items-center space-x-6">
-                    <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                <div key={customer._id} className="bg-white border border-slate-200 rounded-[28px] p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+                  <div className="flex items-center space-x-4 sm:space-x-6">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0">
                       <UserIcon size={24} />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-lg">
-                        {customer.firstName} {customer.middleName ? customer.middleName + ' ' : ''}{customer.lastName}
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-slate-900 text-base sm:text-lg truncate">
+                        {customer.firstName} {customer.lastName}
                       </h3>
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 mt-1 font-medium">
-                        <div className="flex items-center gap-2">
-                          <Mail size={14} className="text-slate-400" />
-                          <span className="font-mono">{customer.email}</span>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+                        <div className="flex items-center gap-2 truncate">
+                          <Mail size={14} className="text-slate-400 shrink-0" />
+                          <span className="truncate">{customer.email}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Calendar size={14} className="text-slate-400" />
-                          <span>Born: {customer.dob ? new Date(customer.dob).toLocaleDateString() : 'N/A'}</span>
+                          <Calendar size={14} className="text-slate-400 shrink-0" />
+                          <span>{customer.dob ? new Date(customer.dob).toLocaleDateString() : 'N/A'}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-3 text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 w-fit px-2 py-1 rounded-md">
+                      <div className="flex items-center gap-2 mt-3 text-[9px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 w-fit px-2 py-1 rounded-md">
                         <BadgeCheck size={12} />
-                        Store Access Active
+                        Access Active
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button onClick={() => handleOpenEditCustomer(customer)} className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit Customer">
-                      <Edit2 size={20} />
+                  <div className="flex items-center justify-end sm:justify-start space-x-1 border-t sm:border-t-0 pt-3 sm:pt-0">
+                    <button onClick={() => handleOpenEditCustomer(customer)} className="p-2.5 sm:p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit Customer">
+                      <Edit2 size={18} />
                     </button>
-                    <button onClick={() => handleDeleteCustomer(customer._id)} className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete Customer">
-                      <Trash2 size={20} />
+                    <button onClick={() => handleDeleteCustomer(customer._id)} className="p-2.5 sm:p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete Customer">
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
@@ -808,15 +821,15 @@ export default function SuperAdminDashboard() {
 
         {/* ─── Tab: Support Center ─── */}
         {activeTab === 'support' && (
-          <>
+          <div className="space-y-6">
             <header className="mb-8">
               <h2 className="text-3xl font-bold text-slate-900">Support Center</h2>
               <p className="text-slate-500 mt-1 text-sm font-medium">Communicate with store admins and provide technical guidance.</p>
             </header>
 
-            <div className="grid grid-cols-12 gap-8 h-[700px]">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-auto lg:h-[700px]">
               {/* Ticket List */}
-              <div className="col-span-4 bg-white border border-slate-200 rounded-[32px] overflow-hidden flex flex-col shadow-sm">
+              <div className="lg:col-span-4 bg-white border border-slate-200 rounded-[32px] overflow-hidden flex flex-col shadow-sm max-h-[400px] lg:max-h-full">
                 <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                   <h3 className="font-bold text-slate-900 flex items-center gap-2">
                     <ClipboardList size={18} className="text-indigo-600" />
@@ -838,13 +851,12 @@ export default function SuperAdminDashboard() {
                       >
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="font-bold text-slate-900 truncate pr-2">{ticket.adminId?.businessName || ticket.adminId?.name || 'Admin'}</span>
-                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
-                            ticket.status === 'OPEN' ? 'bg-red-50 text-red-600' : 
-                            ticket.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-600' :
-                            ticket.status === 'PENDING' ? 'bg-amber-50 text-amber-600' :
-                            ticket.status === 'BACKLOG' ? 'bg-slate-100 text-slate-500' :
-                            'bg-red-500 text-white'
-                          }`}>
+                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${ticket.status === 'OPEN' ? 'bg-red-50 text-red-600' :
+                              ticket.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-600' :
+                                ticket.status === 'PENDING' ? 'bg-amber-50 text-amber-600' :
+                                  ticket.status === 'BACKLOG' ? 'bg-slate-100 text-slate-500' :
+                                    'bg-red-500 text-white'
+                            }`}>
                             {ticket.status}
                           </span>
                         </div>
@@ -853,10 +865,10 @@ export default function SuperAdminDashboard() {
                         </p>
                         <div className="flex items-center justify-between">
                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                             {new Date(ticket.lastMessageAt || ticket.createdAt).toLocaleDateString()}
+                            {new Date(ticket.lastMessageAt || ticket.createdAt).toLocaleDateString()}
                           </span>
                           {ticket.status === 'OPEN' && (
-                             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                           )}
                         </div>
                       </button>
@@ -866,185 +878,174 @@ export default function SuperAdminDashboard() {
               </div>
 
               {/* Chat Window */}
-              <div className="col-span-5 bg-white border border-slate-200 rounded-[32px] overflow-hidden flex flex-col shadow-sm relative">
+              <div className="lg:col-span-5 bg-white border border-slate-200 rounded-[32px] overflow-hidden flex flex-col shadow-sm relative min-h-[500px] lg:min-h-0">
                 {!activeTicketId ? (
-                   <div className="flex-1 flex flex-col items-center justify-center text-center p-12 space-y-4">
-                      <div className="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400">
-                         <MessageSquare size={40} />
-                      </div>
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-12 space-y-4">
+                    <div className="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400">
+                      <MessageSquare size={40} />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-slate-900">Expert Support</h4>
+                      <p className="text-sm text-slate-500 max-w-[240px] mx-auto mt-1">Select an active ticket from the left to start communicating with the admin.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                       <div>
-                         <h4 className="text-lg font-bold text-slate-900">Expert Support</h4>
-                         <p className="text-sm text-slate-500 max-w-[240px] mx-auto mt-1">Select an active ticket from the left to start communicating with the admin.</p>
-                      </div>
-                   </div>
-                ) : (() => {
-                  const currentTicket = tickets?.find((t: any) => t._id === activeTicketId);
-                  return (
-                    <>
-                      <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                         <div>
-                            <h3 className="font-bold text-slate-900">{currentTicket?.adminId?.businessName || 'Admin Chat'}</h3>
-                            <div className="flex items-center gap-2 mt-0.5">
-                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Session</span>
-                               <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded shrink-0 ${
-                                  currentTicket?.status === 'OPEN' ? 'bg-red-50 text-red-600' : 
-                                  currentTicket?.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-600' :
-                                  currentTicket?.status === 'PENDING' ? 'bg-amber-50 text-amber-600' :
-                                  currentTicket?.status === 'BACKLOG' ? 'bg-slate-100 text-slate-500' :
-                                  'bg-red-500 text-white'
-                               }`}>
-                                  {currentTicket?.status}
-                               </span>
-                            </div>
-                         </div>
-                         <div className="flex items-center gap-2">
-                           {['OPEN', 'PENDING', 'BACKLOG', 'RESOLVED', 'REJECTED'].filter(s => s !== currentTicket?.status).map(status => (
-                              <button 
-                                key={status}
-                                onClick={() => handleUpdateTicketStatus(activeTicketId!, status)}
-                                className={`px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all ${
-                                  status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white' :
-                                  status === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white' :
-                                  status === 'BACKLOG' ? 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-600 hover:text-white' :
-                                  status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-600 hover:text-white' :
-                                  'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-600 hover:text-white'
-                                }`}
-                              >
-                                {status === 'RESOLVED' && <CheckCircle2 size={10} className="inline mr-1" />}
-                                {status === 'REJECTED' && <X size={10} className="inline mr-1" />}
-                                {status === 'BACKLOG' && <History size={10} className="inline mr-1" />}
-                                {status === 'PENDING' && <Clock size={10} className="inline mr-1" />}
-                                {status}
-                              </button>
-                           ))}
-                         </div>
-                      </div>
-                      
-                      <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-                         {currentTicket?.messages?.map((msg: any, idx: number) => {
-                            const isMe = msg.senderId === (session?.user as any).id;
-                            return (
-                              <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] rounded-[20px] p-3 text-sm shadow-sm ${
-                                  isMe 
-                                    ? 'bg-indigo-600 text-white rounded-tr-none' 
-                                    : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none'
-                                }`}>
-                                  <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                                  <p className={`text-[9px] mt-1.5 font-bold uppercase tracking-wider opacity-60 ${isMe ? 'text-indigo-100' : 'text-slate-400'}`}>
-                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                         })}
-                      </div>
-
-                      <form onSubmit={handleSendMessage} className="p-4 bg-slate-50 border-t border-slate-100">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={chatMessage}
-                            onChange={(e) => setChatMessage(e.target.value)}
-                            placeholder="Type your response..."
-                            className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm font-medium"
-                          />
-                          <button
-                            disabled={isSendingMessage || !chatMessage.trim()}
-                            type="submit"
-                            className="absolute right-1.5 top-1.5 p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50"
-                          >
-                            {isSendingMessage ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                          </button>
+                        <h3 className="font-bold text-slate-900">{activeTicket?.adminId?.businessName || 'Admin Chat'}</h3>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Session</span>
+                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded shrink-0 ${activeTicket?.status === 'OPEN' ? 'bg-red-50 text-red-600' :
+                              activeTicket?.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-600' :
+                                activeTicket?.status === 'PENDING' ? 'bg-amber-50 text-amber-600' :
+                                  activeTicket?.status === 'BACKLOG' ? 'bg-slate-100 text-slate-500' :
+                                    'bg-red-500 text-white'
+                            }`}>
+                            {activeTicket?.status}
+                          </span>
                         </div>
-                      </form>
-                    </>
-                  );
-                })()}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {['OPEN', 'PENDING', 'BACKLOG', 'RESOLVED', 'REJECTED'].filter(s => s !== activeTicket?.status).map(status => (
+                          <button
+                            key={status}
+                            onClick={() => handleUpdateTicketStatus(activeTicketId!, status)}
+                            className={`px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all ${status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white' :
+                                status === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white' :
+                                  status === 'BACKLOG' ? 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-600 hover:text-white' :
+                                    status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-600 hover:text-white' :
+                                      'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-600 hover:text-white'
+                              }`}
+                          >
+                            {status === 'RESOLVED' && <CheckCircle2 size={10} className="inline mr-1" />}
+                            {status === 'REJECTED' && <X size={10} className="inline mr-1" />}
+                            {status === 'BACKLOG' && <History size={10} className="inline mr-1" />}
+                            {status === 'PENDING' && <Clock size={10} className="inline mr-1" />}
+                            {status}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar max-h-[400px] lg:max-h-full">
+                      {activeTicket?.messages?.map((msg: any, idx: number) => {
+                        const isMe = msg.senderId === (session?.user as any).id;
+                        return (
+                          <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] rounded-[20px] p-3 text-sm shadow-sm ${isMe
+                                ? 'bg-indigo-600 text-white rounded-tr-none'
+                                : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none'
+                              }`}>
+                              <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                              <p className={`text-[9px] mt-1.5 font-bold uppercase tracking-wider opacity-60 ${isMe ? 'text-indigo-100' : 'text-slate-400'}`}>
+                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <form onSubmit={handleSendMessage} className="p-4 bg-slate-50 border-t border-slate-100">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={chatMessage}
+                          onChange={(e) => setChatMessage(e.target.value)}
+                          placeholder="Type your response..."
+                          className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm font-medium"
+                        />
+                        <button
+                          disabled={isSendingMessage || !chatMessage.trim()}
+                          type="submit"
+                          className="absolute right-1.5 top-1.5 p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50"
+                        >
+                          {isSendingMessage ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                )}
               </div>
 
               {/* Admin Context Panel */}
-              <div className="col-span-3 bg-slate-900 rounded-[32px] overflow-hidden flex flex-col shadow-xl text-white">
-                {!activeTicketId ? (
-                  <div className="p-8 text-center h-full flex flex-col items-center justify-center opacity-40">
-                     <Shield size={40} className="mb-4" />
-                     <p className="text-xs font-bold uppercase tracking-widest text-slate-400">System Context Locked</p>
-                  </div>
-                ) : (() => {
-                  const currentTicket = tickets?.find((t: any) => t._id === activeTicketId);
-                  const admin = currentTicket?.adminId;
-                  if (!admin) return null;
-                  return (
-                    <div className="p-6 h-full flex flex-col">
-                      <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2 text-indigo-400">
-                        <AtSign size={16} /> Admin Context
-                      </h3>
-                      
-                      <div className="space-y-6">
-                         <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Display Name</p>
-                            <p className="font-bold text-sm">{admin.name}</p>
-                         </div>
-                         
-                         <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Business Presence</p>
-                            <p className="font-bold text-sm">{admin.businessName}</p>
-                         </div>
+              <div className="lg:col-span-3 bg-slate-900 rounded-[32px] overflow-hidden flex flex-col shadow-xl text-white">
+                {activeTicketId && activeAdmin ? (
+                  <div className="p-6 h-full flex flex-col">
+                    <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2 text-indigo-400">
+                      <AtSign size={16} /> Admin Context
+                    </h3>
 
-                         <div className="space-y-4">
-                            <div className="flex items-center gap-3">
-                               <Mail size={16} className="text-indigo-400" />
-                               <div>
-                                  <p className="text-[8px] font-bold text-slate-500 uppercase">Email</p>
-                                  <p className="text-[11px] font-bold truncate">{admin.email}</p>
-                               </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                               <Phone size={16} className="text-indigo-400" />
-                               <div>
-                                  <p className="text-[8px] font-bold text-slate-500 uppercase">Phone</p>
-                                  <p className="text-[11px] font-bold">{admin.phone || 'N/A'}</p>
-                               </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                               <FileText size={16} className="text-indigo-400" />
-                               <div>
-                                  <p className="text-[8px] font-bold text-slate-500 uppercase">PAN Number</p>
-                                  <p className="text-[11px] font-bold">{admin.panNumber || 'N/A'}</p>
-                               </div>
-                            </div>
-                         </div>
-
-                         <div className="pt-6 mt-6 border-t border-white/10">
-                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center justify-between">
-                               Active Assets
-                               <span className="bg-indigo-600 text-[8px] px-1.5 py-0.5 rounded-full">{admin.assignedSiteIds?.length || 0} Stores</span>
-                            </p>
-                            <div className="space-y-2 max-h-[120px] overflow-y-auto custom-scrollbar">
-                               {websites?.filter((s: any) => admin.assignedSiteIds?.includes(s._id)).map((site: any) => (
-                                  <div key={site._id} className="text-[10px] font-bold p-2 bg-white/5 rounded-xl flex items-center gap-2">
-                                     <Globe size={10} className="text-emerald-400" />
-                                     {site.businessName}
-                                  </div>
-                               ))}
-                            </div>
-                         </div>
+                    <div className="space-y-6">
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Display Name</p>
+                        <p className="font-bold text-sm">{activeAdmin.name}</p>
                       </div>
 
-                      <div className="mt-auto pt-4 text-center">
-                         <button 
-                           onClick={() => setViewingAdmin(admin)}
-                           className="w-full py-2.5 bg-white/10 hover:bg-white text-[10px] font-black uppercase tracking-widest text-white hover:text-slate-900 rounded-xl border border-white/20 transition-all"
-                         >
-                           View Full Profile
-                         </button>
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Business Presence</p>
+                        <p className="font-bold text-sm">{activeAdmin.businessName}</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <AtSign size={16} className="text-indigo-400" />
+                          <div>
+                            <p className="text-[8px] font-bold text-slate-500 uppercase">Email</p>
+                            <p className="text-[11px] font-bold truncate">{activeAdmin.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Phone size={16} className="text-indigo-400" />
+                          <div>
+                            <p className="text-[8px] font-bold text-slate-500 uppercase">Phone</p>
+                            <p className="text-[11px] font-bold">{activeAdmin.phone || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <FileText size={16} className="text-indigo-400" />
+                          <div>
+                            <p className="text-[8px] font-bold text-slate-500 uppercase">PAN Number</p>
+                            <p className="text-[11px] font-bold">{activeAdmin.panNumber || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-6 mt-6 border-t border-white/10">
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center justify-between">
+                          Active Assets
+                          <span className="bg-indigo-600 text-[8px] px-1.5 py-0.5 rounded-full">{activeAdmin.assignedSiteIds?.length || 0} Stores</span>
+                        </p>
+                        <div className="space-y-2 max-h-[120px] overflow-y-auto custom-scrollbar">
+                          {websites?.filter((s: any) => activeAdmin.assignedSiteIds?.includes(s._id)).map((site: any) => (
+                            <div key={site._id} className="text-[10px] font-bold p-2 bg-white/5 rounded-xl flex items-center gap-2">
+                              <Globe size={10} className="text-emerald-400" />
+                              {site.businessName}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  );
-                })()}
+
+                    <div className="mt-auto pt-4 text-center">
+                      <button
+                        onClick={() => setViewingAdmin(activeAdmin)}
+                        className="w-full py-2.5 bg-white/10 hover:bg-white text-[10px] font-black uppercase tracking-widest text-white hover:text-slate-900 rounded-xl border border-white/20 transition-all"
+                      >
+                        View Full Profile
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center h-full flex flex-col items-center justify-center opacity-40 py-12">
+                    <Shield size={40} className="mb-4" />
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400">System Context Locked</p>
+                  </div>
+                )}
               </div>
             </div>
-          </>
+          </div>
         )}
       </main>
 
@@ -1060,45 +1061,47 @@ export default function SuperAdminDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Display Name</label>
-                  <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="John Doe" />
+                  <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="John Doe" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Business Name</label>
-                  <input type="text" required value={formData.businessName} onChange={e => setFormData({...formData, businessName: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="Business Pvt. Ltd." />
+                  <input type="text" required value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="Business Pvt. Ltd." />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Username</label>
-                  <input type="text" required value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="admin123" />
+                  <input type="text" required value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="admin123" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Email Address</label>
-                  <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="admin@example.com" />
+                  <input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="admin@example.com" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">Phone</label>
                   <div className="relative flex gap-3">
                     <div className="w-24 shrink-0">
-                      <CountrySelector 
+                      <CountrySelector
                         value={formData.countryCode}
-                        onChange={(code) => setFormData({...formData, countryCode: code})}
+                        onChange={(code) => setFormData({ ...formData, countryCode: code })}
                       />
                     </div>
-                    <input 
-                      type="tel" 
-                      required 
-                      value={formData.phone} 
-                      onChange={e => setFormData({...formData, phone: e.target.value.replace(/[^0-9]/g, '')})} 
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" 
-                      placeholder="98XXXXXXXX" 
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9]/g, '') })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm"
+                      placeholder="98XXXXXXXX"
                     />
                   </div>
                   {phoneStatus.show && (
                     <div className={`mt-2 ml-1 flex items-center gap-2 text-[10px] font-bold transition-all duration-300 animate-in fade-in slide-in-from-top-1 ${phoneStatus.isValid ? 'text-emerald-600' : 'text-rose-500'}`}>
                       {phoneStatus.isValid ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-                      <img 
-                        src={`https://flagcdn.com/w40/${COUNTRIES.find(c => c.dial_code === formData.countryCode)?.code.toLowerCase()}.png`} 
+                      <Image
+                        src={`https://flagcdn.com/w40/${COUNTRIES.find(c => c.dial_code === formData.countryCode)?.code.toLowerCase()}.png`}
                         className="w-4 h-auto rounded-[2px] shadow-sm ml-1"
                         alt="country flag"
+                        width={20}
+                        height={15}
                       />
                       <span className="tracking-widest uppercase">{phoneStatus.message}</span>
                     </div>
@@ -1106,18 +1109,18 @@ export default function SuperAdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-1.5">PAN Number</label>
-                  <input type="text" required value={formData.panNumber} onChange={e => setFormData({...formData, panNumber: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="PAN Number" />
+                  <input type="text" required value={formData.panNumber} onChange={e => setFormData({ ...formData, panNumber: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="PAN Number" />
                 </div>
               </div>
               <div>
                 <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-2">{editingAdmin ? 'New Password (leave blank to keep)' : 'Initial Password'}</label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="password" required={!editingAdmin} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="••••••••" />
+                  <input type="password" required={!editingAdmin} value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-sm" placeholder="••••••••" />
                 </div>
               </div>
               <div className="flex items-center space-x-3 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
-                <input type="checkbox" id="themeToggle" checked={formData.canChangeTheme} onChange={e => setFormData({...formData, canChangeTheme: e.target.checked})} className="w-5 h-5 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500" />
+                <input type="checkbox" id="themeToggle" checked={formData.canChangeTheme} onChange={e => setFormData({ ...formData, canChangeTheme: e.target.checked })} className="w-5 h-5 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500" />
                 <label htmlFor="themeToggle" className="text-sm font-bold text-indigo-900 flex items-center cursor-pointer">
                   <Palette size={16} className="mr-2" /> Enable Global Theme Selection for this Admin
                 </label>
@@ -1126,7 +1129,7 @@ export default function SuperAdminDashboard() {
                 <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-widest mb-3">Assign Web Management Sites</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1 custom-scrollbar">
                   {websites?.map((site: any) => (
-                    <div key={site._id} onClick={() => { const ids = formData.assignedSiteIds.includes(site._id) ? formData.assignedSiteIds.filter(id => id !== site._id) : [...formData.assignedSiteIds, site._id]; setFormData({...formData, assignedSiteIds: ids}); }} className={`cursor-pointer p-3 border rounded-2xl transition-all flex items-center justify-between ${formData.assignedSiteIds.includes(site._id) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}>
+                    <div key={site._id} onClick={() => { const ids = formData.assignedSiteIds.includes(site._id) ? formData.assignedSiteIds.filter(id => id !== site._id) : [...formData.assignedSiteIds, site._id]; setFormData({ ...formData, assignedSiteIds: ids }); }} className={`cursor-pointer p-3 border rounded-2xl transition-all flex items-center justify-between ${formData.assignedSiteIds.includes(site._id) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}>
                       <span className="text-[12px] font-bold truncate mr-2">{site.businessName}</span>
                       {formData.assignedSiteIds.includes(site._id) ? <Check size={14} /> : <Globe size={14} className="text-slate-400" />}
                     </div>
@@ -1151,7 +1154,14 @@ export default function SuperAdminDashboard() {
             <button onClick={() => setIdPhotoModal(null)} className="absolute -top-4 -right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-700 shadow-lg font-bold z-10">
               <X size={20} />
             </button>
-            <img src={idPhotoModal} alt="National ID" className="w-full rounded-2xl shadow-2xl border border-white/20" />
+            <div className="relative w-full aspect-video">
+              <Image
+                src={idPhotoModal}
+                alt="National ID"
+                fill
+                className="rounded-2xl shadow-2xl border border-white/20 object-contain"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -1180,11 +1190,10 @@ export default function SuperAdminDashboard() {
             <div className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
               {/* Status Badge */}
               <div className="flex flex-wrap gap-2">
-                <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${
-                  viewingAdmin.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                  : viewingAdmin.status === 'PENDING' ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                  : 'bg-red-100 text-red-700 border border-red-200'
-                }`}>
+                <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${viewingAdmin.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                    : viewingAdmin.status === 'PENDING' ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                      : 'bg-red-100 text-red-700 border border-red-200'
+                  }`}>
                   <BadgeCheck size={13} />
                   {viewingAdmin.status || 'ACTIVE'}
                 </span>
@@ -1223,12 +1232,14 @@ export default function SuperAdminDashboard() {
               {viewingAdmin.nationalIdPhoto && (
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">National ID Photo</p>
-                  <img
-                    src={viewingAdmin.nationalIdPhoto}
-                    alt="National ID"
-                    className="w-full rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => setIdPhotoModal(viewingAdmin.nationalIdPhoto)}
-                  />
+                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setIdPhotoModal(viewingAdmin.nationalIdPhoto)}>
+                    <Image
+                      src={viewingAdmin.nationalIdPhoto}
+                      alt="National ID"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
                   <p className="text-xs text-slate-400 mt-2 text-center">Click to enlarge</p>
                 </div>
               )}
@@ -1300,22 +1311,22 @@ export default function SuperAdminDashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">First Name</label>
-                    <input required type="text" value={customerForm.firstName} onChange={e => setCustomerForm({...customerForm, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                    <input required type="text" value={customerForm.firstName} onChange={e => setCustomerForm({ ...customerForm, firstName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Last Name</label>
-                    <input required type="text" value={customerForm.lastName} onChange={e => setCustomerForm({...customerForm, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                    <input required type="text" value={customerForm.lastName} onChange={e => setCustomerForm({ ...customerForm, lastName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
                   </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Middle Name (Optional)</label>
-                  <input type="text" value={customerForm.middleName} onChange={e => setCustomerForm({...customerForm, middleName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                  <input type="text" value={customerForm.middleName} onChange={e => setCustomerForm({ ...customerForm, middleName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address</label>
                   <div className="relative">
                     <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input required type="email" value={customerForm.email} onChange={e => setCustomerForm({...customerForm, email: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                    <input required type="email" value={customerForm.email} onChange={e => setCustomerForm({ ...customerForm, email: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1323,20 +1334,20 @@ export default function SuperAdminDashboard() {
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Phone</label>
                     <div className="relative">
                       <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input type="tel" value={customerForm.phone} onChange={e => setCustomerForm({...customerForm, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                      <input type="tel" value={customerForm.phone} onChange={e => setCustomerForm({ ...customerForm, phone: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
                     </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Birth</label>
                     <div className="relative">
                       <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input type="date" value={customerForm.dob} onChange={e => setCustomerForm({...customerForm, dob: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                      <input type="date" value={customerForm.dob} onChange={e => setCustomerForm({ ...customerForm, dob: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
                     </div>
                   </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Account Status</label>
-                  <select value={customerForm.status} onChange={e => setCustomerForm({...customerForm, status: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400">
+                  <select value={customerForm.status} onChange={e => setCustomerForm({ ...customerForm, status: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400">
                     <option value="ACTIVE">Active</option>
                     <option value="SUSPENDED">Suspended</option>
                     <option value="BANNED">Banned</option>
@@ -1346,7 +1357,7 @@ export default function SuperAdminDashboard() {
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">New Password (leave blank to keep current)</label>
                   <div className="relative">
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input type="password" value={customerForm.newPassword} onChange={e => setCustomerForm({...customerForm, newPassword: e.target.value})} placeholder="••••••••" className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
+                    <input type="password" value={customerForm.newPassword} onChange={e => setCustomerForm({ ...customerForm, newPassword: e.target.value })} placeholder="••••••••" className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400" />
                   </div>
                 </div>
               </form>
