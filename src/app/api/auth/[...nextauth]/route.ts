@@ -111,7 +111,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = (user as any).id;
         token.role = (user as any).role;
@@ -119,6 +119,14 @@ export const authOptions: NextAuthOptions = {
         token.assignedSiteIds = (user as any).assignedSiteIds;
         token.requirePasswordChange = (user as any).requirePasswordChange;
       }
+
+      // Handle frontend session updates (like requirePasswordChange)
+      if (trigger === "update" && session !== null) {
+        if (session.requirePasswordChange !== undefined) {
+          token.requirePasswordChange = session.requirePasswordChange;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {

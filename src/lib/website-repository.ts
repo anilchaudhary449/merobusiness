@@ -192,24 +192,46 @@ export async function listWebsitesByUser(userId: string) {
   );
 }
 
+import { getCache, setCache, deleteCache } from '@/lib/redis';
+
 export async function getWebsiteById(id: string) {
-  return withFallback(
+  const cacheKey = `website:id:${id}`;
+  const cached = await getCache<WebsiteRecord>(cacheKey);
+  if (cached) return cached;
+
+  const result = await withFallback(
     async () => clone(await Website.findById(id).lean()),
     async () => {
       const websites = await readLocalWebsites();
       return clone(websites.find((website) => website._id === id) ?? null);
     }
   );
+  
+  if (result) {
+    await setCache(cacheKey, result);
+    if (result.slug) await setCache(`website:slug:${result.slug}`, result);
+  }
+  return result;
 }
 
 export async function getWebsiteBySlug(slug: string) {
-  return withFallback(
+  const cacheKey = `website:slug:${slug}`;
+  const cached = await getCache<WebsiteRecord>(cacheKey);
+  if (cached) return cached;
+
+  const result = await withFallback(
     async () => clone(await Website.findOne({ slug }).lean()),
     async () => {
       const websites = await readLocalWebsites();
       return clone(websites.find((website) => website.slug === slug) ?? null);
     }
   );
+
+  if (result) {
+    await setCache(cacheKey, result);
+    if (result._id) await setCache(`website:id:${result._id}`, result);
+  }
+  return result;
 }
 
 export async function createWebsiteForUser(userId: string, data: { businessName: string; slug: string }) {
@@ -234,7 +256,7 @@ export async function createWebsiteForUser(userId: string, data: { businessName:
 }
 
 export async function updateWebsiteById(id: string, data: WebsiteRecord) {
-  return withFallback(
+  const result = await withFallback(
     async () => clone(await Website.findByIdAndUpdate(id, data, { new: true }).lean()),
     async () => {
       const websites = await readLocalWebsites();
@@ -255,10 +277,16 @@ export async function updateWebsiteById(id: string, data: WebsiteRecord) {
       return clone(updatedWebsite);
     }
   );
+
+  if (result) {
+    await deleteCache(`website:id:${id}`);
+    if (result.slug) await deleteCache(`website:slug:${result.slug}`);
+  }
+  return result;
 }
 
 export async function deleteWebsiteById(id: string) {
-  return withFallback(
+  const result = await withFallback(
     async () => clone(await Website.findByIdAndDelete(id).lean()),
     async () => {
       const websites = await readLocalWebsites();
@@ -271,10 +299,16 @@ export async function deleteWebsiteById(id: string) {
       return clone(website);
     }
   );
+
+  if (result) {
+    await deleteCache(`website:id:${id}`);
+    if (result.slug) await deleteCache(`website:slug:${result.slug}`);
+  }
+  return result;
 }
 
 export async function toggleWebsiteActiveById(id: string) {
-  return withFallback(
+  const result = await withFallback(
     async () => {
       const website = await Website.findById(id);
       if (!website) {
@@ -283,7 +317,7 @@ export async function toggleWebsiteActiveById(id: string) {
 
       website.isActive = !website.isActive;
       await website.save();
-      return { isActive: website.isActive };
+      return { isActive: website.isActive, slug: website.slug };
     },
     async () => {
       const websites = await readLocalWebsites();
@@ -298,9 +332,15 @@ export async function toggleWebsiteActiveById(id: string) {
         updatedAt: new Date().toISOString(),
       };
       await writeLocalWebsites(websites);
-      return { isActive: websites[index].isActive };
+      return { isActive: websites[index].isActive, slug: websites[index].slug };
     }
   );
+
+  if (result) {
+    await deleteCache(`website:id:${id}`);
+    if (result.slug) await deleteCache(`website:slug:${result.slug}`);
+  }
+  return result ? { isActive: result.isActive } : null;
 }
 
 export async function listAllWebsites() {

@@ -68,7 +68,14 @@ export default function ResetPasswordPage() {
 
       // Redirect after a short delay
       setTimeout(() => {
-        router.push("/dashboard");
+        const userRole = (session?.user as any)?.role;
+        if (userRole === 'SUPER_ADMIN') {
+          router.push("/super-admin");
+        } else if (userRole === 'CUSTOMER') {
+          router.push("/"); // Customers go back to storefront home or current site
+        } else {
+          router.push("/dashboard");
+        }
       }, 2000);
 
     } catch (err: any) {

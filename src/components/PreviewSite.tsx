@@ -192,9 +192,30 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
         duration: 10000
       });
       if (data.tempPassword) {
-        alert(`Temporary Password: ${data.tempPassword}\n\nPlease save this and login immediately.`);
+        toast.custom((t) => (
+          <div className="bg-white p-4 rounded-xl shadow-2xl border border-slate-100 max-w-sm w-full">
+            <h4 className="font-black text-slate-900 mb-2">Temporary Password</h4>
+            <p className="text-sm text-slate-600 mb-4">
+              Please save this code and login immediately.
+            </p>
+            <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
+              <code className="flex-1 font-mono text-lg font-bold text-center text-indigo-600 tracking-wider">{data.tempPassword}</code>
+              <button 
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(data.tempPassword);
+                  toast.success('Copied to clipboard!');
+                  toast.dismiss(t);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md text-xs font-bold transition-colors"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        ), { duration: 30000 });
       } else {
-        alert('No account found with this email, or an error occurred. Please verify your email address.');
+        toast.error('No account found with this email, or an error occurred. Please verify your email address.');
       }
 
       setAuthModal('login');
