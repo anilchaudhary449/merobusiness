@@ -5,6 +5,11 @@ import bcrypt from "bcryptjs";
 import { dbConnect } from "@/lib/mongoose";
 import User from "@/models/User";
 
+// In-memory rate limiter (Warning: Resets on server restart/serverless instance spin down)
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -22,7 +27,26 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Missing email or password");
         }
 
-        console.log("Auth attempt for:", credentials.email);
+        const email = credentials.email.toLowerCase();
+        
+        // --- Rate Limiting Logic ---
+        const now = Date.now();
+        const attemptTracker = loginAttempts.get(email) || { count: 0, resetAt: now + LOCKOUT_DURATION_MS };
+        
+        if (now > attemptTracker.resetAt) {
+          // Reset if lockout period has passed
+          attemptTracker.count = 0;
+          attemptTracker.resetAt = now + LOCKOUT_DURATION_MS;
+        }
+
+        if (attemptTracker.count >= MAX_ATTEMPTS) {
+          throw new Error("Too many login attempts. Please try again in 5 minutes.");
+        }
+        
+        // Keep tracker updated
+        loginAttempts.set(email, attemptTracker);
+
+        console.log("Auth attempt for:", email);
         try {
           await dbConnect();
           const user = await User.findOne({ email: credentials.email.toLowerCase() });
@@ -77,6 +101,9 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Incorrect password");
           }
 
+          // Login successful, reset rate limiter
+          loginAttempts.delete(email);
+
           return {
             id: user._id.toString(),
             email: user.email,
@@ -86,7 +113,15 @@ export const authOptions: NextAuthOptions = {
             assignedSiteIds: user.assignedSiteIds,
           };
         } catch (error: any) {
-          console.error("NextAuth authorize error:", error);
+          console.error("NextAuth authorize error:", error.message || error);
+          
+          // Increment failure counter
+          attemptTracker.count += 1;
+          loginAttempts.set(email, attemptTracker);
+          
+          // Artificial delay to thwart brute force timing
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
           throw error;
         }
       },

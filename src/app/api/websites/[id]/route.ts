@@ -71,7 +71,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!website) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(website);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Update website error:', error.message || error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
@@ -113,6 +114,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (!website) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(website);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Toggle website status error:', error.message || error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

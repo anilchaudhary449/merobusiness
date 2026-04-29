@@ -73,6 +73,7 @@ export async function POST(req: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0].message }, { status: 422 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Create website error:', error.message || error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
