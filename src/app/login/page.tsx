@@ -86,7 +86,11 @@ export default function LoginPage() {
           duration: 10000
         });
         if (data.tempPassword) {
-          alert(`Temporary Password: ${data.tempPassword}\n\nPlease save this and login immediately.`);
+          if (data.userRole === 'SUPER_ADMIN') {
+            alert(`⚠️ CRITICAL SECURITY ALERT ⚠️\n\nSuper-Admin Access Code: ${data.tempPassword}\n\nPlease save this immediately. You will be forced to secure the platform with a new password upon login.`);
+          } else {
+            alert(`Temporary Password: ${data.tempPassword}\n\nPlease save this and login immediately.`);
+          }
         } else {
           alert('No account found with this email, or an error occurred. Please verify your email address.');
         }

@@ -26,6 +26,12 @@ export async function POST(req: Request) {
       });
     }
 
+    if (user.status !== 'ACTIVE') {
+      return NextResponse.json({
+        error: "Your account is not currently active or is pending approval. Password reset is not permitted."
+      }, { status: 403 });
+    }
+
     // 1. Generate a secure random 8-character password
     const tempPassword = crypto.randomBytes(4).toString('hex'); // 8 characters
     const hashedPassword = await bcrypt.hash(tempPassword, 12);
@@ -64,9 +70,16 @@ export async function POST(req: Request) {
     // 4. Return response
     // WARNING: In production, do NOT return the password in the API. Email it instead.
     // For this demonstration/no-email environment, we return it to the UI.
+    let message = `Password reset successful. Your temporary password is: ${tempPassword}. You must use this to log in immediately and create a new password.`;
+    
+    if (user.role === 'SUPER_ADMIN') {
+      message = `CRITICAL SECURITY ALERT: Super-Admin credentials have been reset. Temporary Access Code: ${tempPassword}. Please login immediately to secure the platform.`;
+    }
+
     return NextResponse.json({ 
-      message: `Password reset successful. Your temporary password is: ${tempPassword}. You must use this to log in immediately and create a new password.`,
-      tempPassword: tempPassword // Provide this explicitly so frontend can show it in an alert
+      message,
+      tempPassword: tempPassword, // Provide this explicitly so frontend can show it in an alert
+      userRole: user.role
     });
 
   } catch (error: any) {
