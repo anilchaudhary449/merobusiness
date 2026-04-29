@@ -65,6 +65,39 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error('Email Required', { description: 'Please enter your email address first.' });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/auth/customer-forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast.success('Password Reset Initiated', {
+          description: data.message,
+          duration: 10000
+        });
+        if (data.tempPassword) {
+          alert(`Temporary Password: ${data.tempPassword}\n\nPlease save this and login immediately.`);
+        }
+      } else {
+        toast.error('Reset Failed', { description: data.error || 'Failed to initiate reset.' });
+      }
+    } catch (err) {
+      toast.error('Network Error', { description: 'Could not connect to server.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#020617] relative overflow-hidden px-4">
       {/* Decorative Gradients */}
@@ -101,7 +134,17 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2 font-mono uppercase tracking-wider text-[10px]">Password</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-slate-300 font-mono uppercase tracking-wider text-[10px]">Password</label>
+                <button 
+                  type="button" 
+                  onClick={handleForgotPassword}
+                  disabled={isLoading}
+                  className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold transition-colors disabled:opacity-50"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-400 text-slate-500">
                   <Lock size={18} />
