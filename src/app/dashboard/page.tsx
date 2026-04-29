@@ -838,6 +838,23 @@ export default function Dashboard() {
                                       ))}
                                     </div>
                                   </div>
+                                  {c.resetLogs && c.resetLogs.length > 0 && (
+                                    <div className="mt-6 space-y-3">
+                                      <h4 className="text-[10px] font-black uppercase tracking-widest text-red-500">Security Audit Logs</h4>
+                                      <div className="flex flex-col gap-2">
+                                        {c.resetLogs.map((log: any) => (
+                                          <div key={log._id} className="bg-red-50/50 border border-red-100 rounded-lg p-2.5 flex items-center justify-between text-xs">
+                                            <span className="font-bold text-red-700 flex items-center gap-2">
+                                              <ShieldCheck size={14} /> Password Reset Triggered
+                                            </span>
+                                            <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">
+                                              {new Date(log.createdAt).toLocaleString()} • by {log.resetBy}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </td>
                               </tr>
                             )}

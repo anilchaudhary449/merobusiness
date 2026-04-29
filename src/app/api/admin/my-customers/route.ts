@@ -5,6 +5,7 @@ import { dbConnect } from "@/lib/mongoose";
 import User from "@/models/User";
 import Website from "@/models/Website";
 import Order from "@/models/Order";
+import CredentialResetRecord from "@/models/CredentialResetRecord";
 
 export async function GET(req: Request) {
   try {
@@ -51,20 +52,28 @@ export async function GET(req: Request) {
       return NextResponse.json({ customers: [] }, { status: 200 });
     }
 
-    // Find all customers whose assignedSiteIds overlaps with the admin's site identifiers (IDs or Slugs)
+    // Fetch all customers whose assignedSiteIds overlaps with the admin's site identifiers (IDs or Slugs)
     const customers = await User.find({
       role: 'CUSTOMER',
       assignedSiteIds: { $in: mySiteIdentifiers }
     }).select('-password').sort({ createdAt: -1 }).lean();
+
+    const customerIds = customers.map((c: any) => c._id.toString());
 
     // Fetch all orders tied to these admin's sites to map them
     const allRelevantOrders = await Order.find({
       siteId: { $in: mySiteIdentifiers }
     }).lean();
 
+    // Fetch credential reset logs for these customers
+    const resetLogs = await CredentialResetRecord.find({
+      userId: { $in: customerIds }
+    }).sort({ createdAt: -1 }).lean();
+
     const customersWithOrders = customers.map((c: any) => ({
       ...c,
-      orders: allRelevantOrders.filter((o: any) => o.customerId.toString() === c._id.toString())
+      orders: allRelevantOrders.filter((o: any) => o.customerId.toString() === c._id.toString()),
+      resetLogs: resetLogs.filter((l: any) => l.userId.toString() === c._id.toString())
     }));
 
     return NextResponse.json({ customers: customersWithOrders }, { status: 200 });

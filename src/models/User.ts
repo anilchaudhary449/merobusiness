@@ -27,6 +27,7 @@ export interface IUser extends Document {
     businessName?: string;
     nationalIdPhoto?: string;
   };
+  requirePasswordChange?: boolean;
   deliveryAddress?: string;
   mapLocation?: {
     label?: string;
@@ -60,6 +61,7 @@ const UserSchema = new Schema<IUser>(
     },
     assignedSiteIds: [{ type: String }],
     pendingProfileChanges: { type: Schema.Types.Mixed },
+    requirePasswordChange: { type: Boolean, default: false },
     deliveryAddress: { type: String },
     mapLocation: {
       label: { type: String },

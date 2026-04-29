@@ -544,6 +544,23 @@ export default function SuperAdminDashboard() {
                         <BadgeCheck size={12} />
                         Access Active
                       </div>
+                      {customer.resetLogs && customer.resetLogs.length > 0 && (
+                        <div className="mt-3">
+                          <h4 className="text-[9px] font-black uppercase tracking-widest text-red-500 mb-1.5">Security Audit Logs</h4>
+                          <div className="flex flex-col gap-1.5">
+                            {customer.resetLogs.map((log: any) => (
+                              <div key={log._id} className="bg-red-50/50 border border-red-100 rounded-md p-1.5 flex items-center justify-between text-[10px]">
+                                <span className="font-bold text-red-700 flex items-center gap-1.5">
+                                  <ShieldCheck size={12} /> Reset Triggered
+                                </span>
+                                <span className="text-[9px] text-red-400 font-bold uppercase tracking-wider">
+                                  {new Date(log.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center justify-end sm:justify-start space-x-1 border-t sm:border-t-0 pt-3 sm:pt-0">
