@@ -10,7 +10,7 @@ import {
   Check, X, Loader2, LogOut, LayoutDashboard,
   Lock, Mail, User as UserIcon, Palette,
   ClipboardList, CheckCircle2, XCircle, Eye, Phone, FileText, Building2, Clock,
-  Info, AtSign, Calendar, BadgeCheck, UserCog, ArrowRight, MessageSquare, Send, History
+  Info, AtSign, Calendar, BadgeCheck, UserCog, ArrowRight, MessageSquare, Send, History, ShieldCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { COUNTRIES } from '@/lib/constants/countries';
