@@ -4,11 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { dbConnect } from "@/lib/mongoose";
 import User from "@/models/User";
-
-// In-memory rate limiter (Warning: Resets on server restart/serverless instance spin down)
-const loginAttempts = new Map<string, { count: number; resetAt: number }>();
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -30,21 +26,11 @@ export const authOptions: NextAuthOptions = {
         const email = credentials.email.toLowerCase();
         
         // --- Rate Limiting Logic ---
-        const now = Date.now();
-        const attemptTracker = loginAttempts.get(email) || { count: 0, resetAt: now + LOCKOUT_DURATION_MS };
+        const rateLimitResult = await checkRateLimit(email);
         
-        if (now > attemptTracker.resetAt) {
-          // Reset if lockout period has passed
-          attemptTracker.count = 0;
-          attemptTracker.resetAt = now + LOCKOUT_DURATION_MS;
-        }
-
-        if (attemptTracker.count >= MAX_ATTEMPTS) {
+        if (!rateLimitResult.success) {
           throw new Error("Too many login attempts. Please try again in 5 minutes.");
         }
-        
-        // Keep tracker updated
-        loginAttempts.set(email, attemptTracker);
 
         console.log("Auth attempt for:", email);
         try {
@@ -102,7 +88,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           // Login successful, reset rate limiter
-          loginAttempts.delete(email);
+          await resetRateLimit(email);
 
           return {
             id: user._id.toString(),
@@ -111,13 +97,10 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             permissions: user.permissions,
             assignedSiteIds: user.assignedSiteIds,
+            requirePasswordChange: user.requirePasswordChange,
           };
         } catch (error: any) {
           console.error("NextAuth authorize error:", error.message || error);
-          
-          // Increment failure counter
-          attemptTracker.count += 1;
-          loginAttempts.set(email, attemptTracker);
           
           // Artificial delay to thwart brute force timing
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -134,6 +117,7 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role;
         token.permissions = (user as any).permissions;
         token.assignedSiteIds = (user as any).assignedSiteIds;
+        token.requirePasswordChange = (user as any).requirePasswordChange;
       }
       return token;
     },
@@ -143,6 +127,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role;
         (session.user as any).permissions = token.permissions;
         (session.user as any).assignedSiteIds = token.assignedSiteIds;
+        (session.user as any).requirePasswordChange = token.requirePasswordChange;
       }
       return session;
     },
