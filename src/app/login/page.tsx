@@ -87,6 +87,8 @@ export default function LoginPage() {
         });
         if (data.tempPassword) {
           alert(`Temporary Password: ${data.tempPassword}\n\nPlease save this and login immediately.`);
+        } else {
+          alert('No account found with this email, or an error occurred. Please verify your email address.');
         }
       } else {
         toast.error('Reset Failed', { description: data.error || 'Failed to initiate reset.' });

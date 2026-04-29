@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     if (!user) {
       // Return success even if user doesn't exist to prevent enumeration attacks
       return NextResponse.json({ 
-        message: "If an account exists with this email, a temporary password has been generated. Please check your email." 
+        message: "If an account exists with this email, a temporary password has been generated." 
       });
     }
 
