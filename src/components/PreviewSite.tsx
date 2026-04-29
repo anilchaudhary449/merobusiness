@@ -186,7 +186,15 @@ export default function PreviewSite({ site, ownerInfo, isEditor = false }: { sit
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success(data.message);
+      
+      toast.success('Password Reset Initiated', {
+        description: data.message,
+        duration: 10000
+      });
+      if (data.tempPassword) {
+        alert(`Temporary Password: ${data.tempPassword}\n\nPlease save this and login immediately.`);
+      }
+
       setAuthModal('login');
     } catch (err: any) {
       toast.error(err.message);
